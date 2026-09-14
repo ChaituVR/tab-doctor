@@ -43,7 +43,7 @@ export function Snooze() {
   const menuVisible = frame >= 46 && frame < 112;
 
   return (
-    <AbsoluteFill style={{ background: colors.bg }}>
+    <AbsoluteFill style={{ background: colors.bgGradient }}>
       <Camera zoom={zoomCurve(frame, [[15, 1], [45, 1.55], [118, 1.55], [150, 1], [185, 1], [210, 1.3], [232, 1.3], [250, 1]])} fx={tabCx}>
         <Browser tabs={tabs} pill={pill} counter={`${tabs.filter(t => t.w > 0.5).length} tabs`} />
         {menuVisible && (

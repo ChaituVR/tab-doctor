@@ -24,8 +24,8 @@ export function Stale() {
   const cy = interpolate(move, [0, 1], [720, WIN.top + WIN.tabsTop + WIN.tabH / 2]);
   const stillStale = STALE.length - (frame > 150 ? 1 : 0);
   return (
-    <AbsoluteFill style={{ background: colors.bg }}>
-      <Camera zoom={zoomCurve(frame, [[35, 1], [70, 1.5], [165, 1.5], [198, 1]])} fx={zoomCurve(frame, [[35, 960], [70, 420]])}>
+    <AbsoluteFill style={{ background: colors.bgGradient }}>
+      <Camera zoom={zoomCurve(frame, [[35, 1], [70, 1.3], [165, 1.3], [198, 1]])} fx={zoomCurve(frame, [[35, 960], [70, 700]])}>
         <Browser tabs={tabs} pill={{ w: pillW, count: stillStale }} counter={`${tabs.filter(t => t.w > 0.5).length} tabs`} />
         {frame >= 100 && frame < 165 && <Cursor x={cx} y={cy} pressed={frame >= 138 && frame < 146} />}
       </Camera>

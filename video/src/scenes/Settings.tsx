@@ -20,7 +20,7 @@ export function Settings() {
     <div style={{ fontSize: size, fontWeight: weight, letterSpacing: size > 40 ? '-0.025em' : undefined, lineHeight: 1.15, color: dim ? colors.secondary : colors.label, marginTop: dim ? 14 : 0, opacity: interpolate(frame, [at, at + 12], [0, 1], clamp), transform: `translateY(${interpolate(frame, [at, at + 14], [16, 0], clamp)}px)` }}>{text}</div>
   );
   return (
-    <AbsoluteFill style={{ background: colors.bg, fontFamily: font }}>
+    <AbsoluteFill style={{ background: colors.bgGradient, fontFamily: font }}>
       <div style={{ position: 'absolute', left: 160, top: 330, width: 800 }}>
         {line('Pause anytime.', 20, 84)}
         {line('One switch turns everything off. Snooze, reopen, undo — right from the popup. Rules and options live in their own settings tab.', 40, 30, true, 400)}

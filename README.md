@@ -1,5 +1,7 @@
 # Tab Doctor 👨‍⚕️
 
+[![tests](https://github.com/ChaituVR/tab-doctor/actions/workflows/test.yml/badge.svg)](https://github.com/ChaituVR/tab-doctor/actions/workflows/test.yml)
+
 Tab hygiene rules for Chrome, fully offline. Only `tabs`, `tabGroups`, `alarms` (timers), `contextMenus` (snooze menu) + `storage` (local settings) permissions — no host permissions, no content scripts; CSP `default-src 'none'` makes network access impossible.
 
 ## Rules
@@ -41,7 +43,7 @@ Adding a feature = one new file in `src/rules/` + one line in `index.js`. `ctx` 
 `node --test` (or `npm test`)
 
 ## Promo video
-`video/` is a [Remotion](https://remotion.dev) project (42 s, 1080p, fully mocked — no screen recording). The music bed is synthesized with numpy (`npm run music`), so there is nothing to license. Optional narration (off by default) comes from macOS `say`: run `npm run voice`, then set `NARRATION = true` in `src/Video.tsx`.
+`video/` is a [Remotion](https://remotion.dev) project (49 s, 1080p, fully mocked — no screen recording). The music bed is synthesized with numpy (`npm run music`), so there is nothing to license. Optional narration (off by default) comes from macOS `say`: run `npm run voice`, then set `NARRATION = true` in `src/Video.tsx`.
 ```
 cd video && bun install && npm run studio   # preview
 npm run render                               # → video/out/tab-doctor.mp4

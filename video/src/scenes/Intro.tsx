@@ -14,7 +14,7 @@ export function Intro() {
   });
   const visible = tabs.filter(t => t.w > 0.5).length;
   return (
-    <AbsoluteFill style={{ background: colors.bg }}>
+    <AbsoluteFill style={{ background: colors.bgGradient }}>
       <Camera zoom={zoomCurve(frame, [[0, 1], [120, 1.08]])} fx={960}>
         <Browser tabs={tabs} counter={`${visible} tabs`} />
       </Camera>

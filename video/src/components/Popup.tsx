@@ -1,7 +1,7 @@
 import { interpolate } from 'remotion';
 import './popup.css';
 
-function Switch({ on }: { on: number }) {
+export function Switch({ on }: { on: number }) {
   const bg = on > 0.5 ? '#34c759' : '#e9e9eb';
   return (
     <div style={{ flex: 'none', width: 46, height: 28, borderRadius: 14, background: bg, position: 'relative' }}>

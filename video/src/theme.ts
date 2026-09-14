@@ -2,6 +2,7 @@ export const font = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pr
 export const mono = 'ui-monospace, "SF Mono", Menlo, monospace';
 export const colors = {
   bg: '#f5f5f7',
+  bgGradient: 'radial-gradient(120% 100% at 50% 0%, #fbfbfd 0%, #f2f3f7 55%, #e3e6ee 100%)',
   label: '#1d1d1f',
   secondary: '#6e6e73',
   blue: '#0a84ff',

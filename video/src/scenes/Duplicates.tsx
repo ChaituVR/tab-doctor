@@ -18,8 +18,8 @@ export function Duplicates() {
   });
   const visible = tabs.filter(t => t.w > 0.5).length;
   return (
-    <AbsoluteFill style={{ background: colors.bg }}>
-      <Camera zoom={zoomCurve(frame, [[0, 1.08], [30, 1.45], [125, 1.45], [165, 1]])} fx={960}>
+    <AbsoluteFill style={{ background: colors.bgGradient }}>
+      <Camera zoom={zoomCurve(frame, [[0, 1.08], [30, 1.3], [125, 1.3], [165, 1]])} fx={zoomCurve(frame, [[0, 960], [30, 760]])}>
         <Browser tabs={tabs} counter={`${visible} tabs`} />
       </Camera>
       <Caption title="Duplicates close themselves." sub="The newest copy stays. Pin a tab to protect it. Undo if it ever bites." at={60} />
