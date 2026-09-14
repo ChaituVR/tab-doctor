@@ -16,7 +16,7 @@ async function runRules(trigger) {
     try {
       results.push({ rule: rule.id, ...(await rule.run(ctx)) });
     } catch (err) {
-      console.error(`[Chaitu Manager] rule ${rule.id} failed`, err);
+      console.error(`[Tab Doctor] rule ${rule.id} failed`, err);
     }
   }
 

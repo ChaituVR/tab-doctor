@@ -1,4 +1,4 @@
-# Chaitu Manager
+# Tab Doctor 👨‍⚕️
 
 Tab hygiene rules for Chrome, fully offline. Only `tabs`, `tabGroups`, `alarms` (timers), `contextMenus` (snooze menu) + `storage` (local settings) permissions — no host permissions, no content scripts; CSP `default-src 'none'` makes network access impossible.
 

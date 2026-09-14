@@ -34,7 +34,7 @@ export default {
         }
         grouped += tabIds.length;
       } catch (err) {
-        console.warn('[Chaitu Manager] group-stale skipped window', windowId, err);
+        console.warn('[Tab Doctor] group-stale skipped window', windowId, err);
       }
     }
     return { grouped };

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Chaitu Manager",
+  "name": "Tab Doctor",
   "version": "1.3.0",
-  "description": "Tab hygiene rules, fully offline: close duplicates, group stale tabs, snooze tabs.",
+  "description": "Keeps your tabs healthy, fully offline: closes duplicates, groups stale tabs, snoozes tabs for later.",
   "permissions": [
     "tabs",
     "tabGroups",
@@ -15,7 +15,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Chaitu Manager",
+    "default_title": "Tab Doctor",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
