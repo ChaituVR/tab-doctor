@@ -1,23 +1,13 @@
-import { duplicateKey, groupBy, isManageable, newestFirst } from '../lib/tabs.js';
+import { planDuplicates } from '../lib/tabs.js';
 
 export default {
   id: 'close-duplicates',
   name: 'Close duplicate tabs',
-  description: 'Same URL (ignoring #hash) open more than once: keep the newest, close the rest.',
+  description: 'Same URL (ignoring #hash) open more than once: keep one, close the rest.',
   triggers: ['url-changed', 'manual'],
 
-  async run({ tabs, settings }) {
-    const groups = groupBy(tabs.filter(isManageable), t => duplicateKey(t, settings));
-    const toClose = [];
-    let toActivate = null;
-
-    for (const group of groups.values()) {
-      if (group.length < 2) continue;
-      const [keep, ...rest] = newestFirst(group);
-      if (rest.some(t => t.active)) toActivate = keep;
-      toClose.push(...rest);
-    }
-
+  async run({ tabs, settings, protection, trigger }) {
+    const { toClose, toActivate } = planDuplicates(tabs, settings, protection, { ignoreGrace: trigger === 'manual' });
     const closed = [];
     for (const tab of toClose) {
       const ok = await chrome.tabs.remove(tab.id).then(() => true, () => false);

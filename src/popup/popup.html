@@ -2,12 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="../ui/ui.css">
 </head>
-<body>
+<body class="popup">
   <header class="titlebar">
     <img src="../../icons/icon32.png" width="20" height="20" alt="">
     <span class="app">Tab Doctor</span>
+    <button class="gear" id="settings" title="All settings">⚙︎</button>
   </header>
 
   <section class="group">
@@ -20,27 +21,19 @@
   </section>
 
   <section class="group">
-    <h2>Rules</h2>
-    <ul class="list" id="rules"></ul>
-  </section>
-
-  <section class="group">
-    <h2>Options</h2>
+    <h2>Snoozed</h2>
     <ul class="list">
       <li class="row">
-        <div class="text"><span class="label">Same window only</span><span class="sub">Duplicates across windows are kept</span></div>
-        <input type="checkbox" class="switch" id="sameWindowOnly">
-      </li>
-      <li class="row">
-        <div class="text"><span class="label">Stale after</span><span class="sub">Hours since a tab was last viewed</span></div>
-        <div class="stepper"><input type="number" id="staleHours" min="1" max="720" step="1"><span>h</span></div>
+        <div class="text"><span class="label">Snooze this tab</span><span class="sub">Later today · Tomorrow · Weekend · pick a date</span></div>
+        <div class="pills"><button class="pill" id="snoozeNow">Pick time</button></div>
       </li>
     </ul>
+    <ul class="list" id="snoozed"></ul>
   </section>
 
   <section class="group">
-    <h2>Snoozed</h2>
-    <ul class="list" id="snoozed"></ul>
+    <h2>Recently closed</h2>
+    <ul class="list" id="history"></ul>
   </section>
 
   <section class="actions">
@@ -48,6 +41,10 @@
     <button id="undo" class="btn tinted" disabled>Undo</button>
   </section>
   <p id="status" class="status"></p>
+  <nav class="foot">
+    <button class="footlink" id="settings2">All settings…</button>
+    <a class="footlink" href="https://github.com/ChaituVR/tab-doctor/issues/new" target="_blank" rel="noopener">Request a feature ↗</a>
+  </nav>
 </body>
 <script type="module" src="popup.js"></script>
 </html>

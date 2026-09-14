@@ -1,0 +1,25 @@
+:root { --seg-selected: #fff; }
+@media (prefers-color-scheme: dark) { :root { --seg-selected: #636366; } }
+
+body.snooze { width: auto; padding: 0 0 16px; }
+.sheet-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 4px; }
+.sheet-head img { border-radius: 8px; flex: none; }
+.sheet-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sheet-title { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.sheet-sub { font-size: 13px; color: var(--secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.dt { flex: none; margin-left: auto; padding: 6px 10px; border: 0; border-radius: 8px; background: var(--input-bg); color: var(--label); font: inherit; font-size: 14px; }
+.dt:focus { outline: 2px solid var(--blue); }
+.row.summary { min-height: 34px; padding-top: 6px; padding-bottom: 8px; }
+.row.summary .sub { -webkit-line-clamp: 1; }
+
+.segmented { display: flex; margin: 12px 16px 0; padding: 2px; border-radius: 9px; background: var(--input-bg); }
+.seg {
+  flex: 1; border: 0; border-radius: 7px; padding: 6px 0; font: inherit; font-size: 13px; font-weight: 500;
+  background: transparent; color: var(--label); cursor: pointer;
+}
+.seg[aria-checked="true"] { background: var(--seg-selected); font-weight: 600; box-shadow: 0 3px 8px rgba(0,0,0,.12), 0 1px 1px rgba(0,0,0,.04); }
+.seg:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+.snooze .actions { padding-top: 14px; }
+.snooze .status { min-height: 0; margin-top: 12px; }

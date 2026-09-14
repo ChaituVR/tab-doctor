@@ -1,0 +1,12 @@
+body.options { width: auto; min-height: 100vh; padding: 0; }
+body.options main { max-width: 640px; margin: 0 auto; padding: 32px 24px 48px; }
+body.options .titlebar { padding: 0 16px 14px; }
+body.options .app { font-size: 26px; }
+body.options .version { margin-left: auto; font-size: 13px; color: var(--secondary); }
+body.options .list { border-radius: 14px; }
+body.options .row { min-height: 52px; padding: 10px 16px; }
+body.options .label { font-size: 15px; }
+body.options .sub { font-size: 13px; -webkit-line-clamp: 3; }
+body.options .actions { padding: 20px 16px 0; }
+body.options #snoozed .row:not(.footer) { flex-wrap: nowrap; }
+body.options #snoozed .row:not(.footer) .text { flex-basis: auto; }

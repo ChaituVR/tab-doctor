@@ -2,14 +2,18 @@ import { rules } from './rules/index.js';
 import { debounce } from './lib/scheduler.js';
 import { getSettings, getLastClosed, setLastClosed } from './lib/settings.js';
 import { STALE_GROUP_TITLE } from './rules/groupStale.js';
-import { SNOOZE_OPTIONS, computeWakeAt, alarmName, addSnoozed, removeSnoozed, listSnoozed } from './lib/snooze.js';
+import { SNOOZE_OPTIONS, computeWakeAt, alarmName, addSnoozed, removeSnoozed, listSnoozed, saveSnoozed } from './lib/snooze.js';
+import { addHistory, removeHistory, saveHistory, listHistory } from './lib/history.js';
+import { validateBackup, mergeHistory, mergeSnoozed } from './lib/backup.js';
+import { protection, protect, unprotect, noteNavigation } from './lib/protect.js';
+import { forgetGroup } from './lib/groups.js';
 
 async function runRules(trigger) {
   const settings = await getSettings();
   if (settings.paused && trigger !== 'manual') return [];
 
   const tabs = await chrome.tabs.query({});
-  const ctx = { tabs, settings, trigger };
+  const ctx = { tabs, settings, trigger, protection: await protection() };
   const results = [];
   for (const rule of rules) {
     if (!rule.triggers.includes(trigger) || settings.rules[rule.id] === false) continue;
@@ -20,18 +24,27 @@ async function runRules(trigger) {
     }
   }
 
-  const closed = results.flatMap(r => r.closed || []);
+  const closed = results.flatMap(r => (r.closed || []).map(t => ({ ...t, rule: r.rule })));
   const grouped = results.reduce((n, r) => n + (r.grouped || 0), 0);
-  if (closed.length) await setLastClosed(closed);
-  await chrome.storage.local.set({ lastRun: { at: Date.now(), trigger, closed: closed.length, grouped } });
+  const discarded = results.reduce((n, r) => n + (r.discarded || 0), 0);
+  if (closed.length) {
+    await setLastClosed(closed);
+    const closedAt = Date.now();
+    await addHistory(closed.map(t => ({ url: t.url, title: t.title || t.url, closedAt, rule: t.rule })));
+  }
+  await chrome.storage.local.set({ lastRun: { at: Date.now(), trigger, closed: closed.length, grouped, discarded } });
   return results;
+}
+
+async function reopen(props) {
+  const tab = await chrome.tabs.create(props).catch(() => chrome.tabs.create({ url: props.url, active: props.active }));
+  await protect(tab.id, props.url);
+  return tab;
 }
 
 async function undoLastClose() {
   const closed = await getLastClosed();
-  for (const t of closed) {
-    await chrome.tabs.create({ url: t.url, windowId: t.windowId, active: false }).catch(() => chrome.tabs.create({ url: t.url, active: false }));
-  }
+  for (const t of closed) await reopen({ url: t.url, windowId: t.windowId, active: false });
   await setLastClosed([]);
   return closed.length;
 }
@@ -45,28 +58,48 @@ const onUrlChanged = debounce(() => runRules('url-changed'), 300);
 const onTabCreated = debounce(() => runRules('tab-created'), 300);
 const onTabRemoved = debounce(() => runRules('tab-removed'), 300);
 
-chrome.tabs.onUpdated.addListener((_id, changeInfo) => {
-  if (changeInfo.url) onUrlChanged();
+chrome.tabs.onUpdated.addListener(async (id, changeInfo) => {
+  if (!changeInfo.url) return;
+  await noteNavigation(id, changeInfo.url);
+  onUrlChanged();
 });
+chrome.tabs.onRemoved.addListener(id => { unprotect(id); onTabRemoved(); });
 chrome.tabs.onCreated.addListener(onTabCreated);
-chrome.tabs.onRemoved.addListener(onTabRemoved);
 chrome.storage.onChanged.addListener(refreshBadge);
+chrome.tabGroups.onRemoved.addListener(group => forgetGroup(group.id));
 
 async function wakeSnoozed(id) {
   const entry = await removeSnoozed(id);
   if (!entry) return false;
   await chrome.alarms.clear(alarmName(id));
-  await chrome.tabs.create({ url: entry.url, active: false });
+  await reopen({ url: entry.url, active: false });
   return true;
 }
 
-async function snoozeTab(tab, kind) {
+async function snoozeTab(tab, kind, customWakeAt) {
   if (!tab?.url || !tab.id) return;
   const id = `${Date.now()}-${tab.id}`;
-  const wakeAt = computeWakeAt(kind);
+  const wakeAt = kind === 'custom' ? customWakeAt : computeWakeAt(kind);
   await addSnoozed({ id, url: tab.url, title: tab.title || tab.url, kind, wakeAt, snoozedAt: Date.now() });
   await chrome.alarms.create(alarmName(id), { when: wakeAt });
   await chrome.tabs.remove(tab.id).catch(() => {});
+}
+
+async function reopenFromHistory(closedAt, url) {
+  const entry = await removeHistory(closedAt, url);
+  if (!entry) return false;
+  await reopen({ url: entry.url, active: true });
+  return true;
+}
+
+async function importBackup(raw) {
+  const data = validateBackup(raw);
+  await chrome.storage.local.set({ settings: data.settings });
+  const snoozed = mergeSnoozed(await listSnoozed(), data.snoozed);
+  await saveSnoozed(snoozed);
+  for (const e of snoozed) await chrome.alarms.create(alarmName(e.id), { when: Math.max(e.wakeAt, Date.now() + 1000) });
+  await saveHistory(mergeHistory(await listHistory(), data.history));
+  return { settings: true, snoozed: data.snoozed.length, history: data.history.length };
 }
 
 async function wakeOverdue() {
@@ -82,6 +115,19 @@ async function installContextMenus() {
   for (const opt of SNOOZE_OPTIONS) {
     chrome.contextMenus.create({ id: `snooze-${opt.id}`, parentId: 'snooze', title: opt.title, contexts: ['page', 'action'] });
   }
+  chrome.contextMenus.create({ id: 'snooze-sep', parentId: 'snooze', type: 'separator', contexts: ['page', 'action'] });
+  chrome.contextMenus.create({ id: 'snooze-custom', parentId: 'snooze', title: 'Pick date & time…', contexts: ['page', 'action'] });
+}
+
+async function openSnoozePicker(tab) {
+  if (!tab?.id) return;
+  const url = chrome.runtime.getURL(`src/snooze/snooze.html?tabId=${tab.id}&title=${encodeURIComponent(tab.title || tab.url || '')}`);
+  const size = { width: 400, height: 300 };
+  const parent = tab.windowId != null ? await chrome.windows.get(tab.windowId).catch(() => null) : null;
+  const position = parent
+    ? { left: Math.round(parent.left + (parent.width - size.width) / 2), top: Math.round(parent.top + (parent.height - size.height) / 2) }
+    : {};
+  await chrome.windows.create({ url, type: 'popup', focused: true, ...size, ...position });
 }
 
 async function init() {
@@ -93,7 +139,8 @@ async function init() {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const kind = String(info.menuItemId).replace(/^snooze-/, '');
-  if (SNOOZE_OPTIONS.some(o => o.id === kind)) snoozeTab(tab, kind);
+  if (kind === 'custom') openSnoozePicker(tab);
+  else if (SNOOZE_OPTIONS.some(o => o.id === kind)) snoozeTab(tab, kind);
 });
 chrome.runtime.onStartup.addListener(init);
 chrome.runtime.onInstalled.addListener(init);
@@ -115,7 +162,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const results = await runRules('manual');
       return {
         closed: results.flatMap(r => r.closed || []).length,
-        grouped: results.reduce((n, r) => n + (r.grouped || 0), 0)
+        grouped: results.reduce((n, r) => n + (r.grouped || 0), 0),
+        discarded: results.reduce((n, r) => n + (r.discarded || 0), 0)
       };
     },
     'undo': async () => ({ reopened: await undoLastClose() }),
@@ -124,7 +172,21 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       await removeSnoozed(msg.id);
       await chrome.alarms.clear(alarmName(msg.id));
       return { ok: true };
-    }
+    },
+    'history-reopen': async () => ({ ok: await reopenFromHistory(msg.closedAt, msg.url) }),
+    'snooze-custom': async () => {
+      const tab = await chrome.tabs.get(msg.tabId);
+      if (!Number.isFinite(msg.wakeAt) || msg.wakeAt < Date.now()) throw new Error('wake time must be in the future');
+      await snoozeTab(tab, 'custom', msg.wakeAt);
+      return { ok: true };
+    },
+    'snooze-picker': async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      await openSnoozePicker(tab);
+      return { ok: true };
+    },
+    'history-clear': async () => { await saveHistory([]); return { ok: true }; },
+    'import': async () => importBackup(msg.data)
   };
   const handler = handlers[msg?.type];
   if (!handler) return false;

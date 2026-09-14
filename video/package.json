@@ -1,0 +1,24 @@
+{
+  "name": "tab-doctor-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "still": "remotion still src/index.ts TabDoctor",
+    "render": "remotion render src/index.ts TabDoctor out/tab-doctor.mp4 --codec=h264",
+    "typecheck": "tsc --noEmit",
+    "voice": "python3 scripts/voice.py",
+    "music": "python3 scripts/music.py 60 public/music/bed.wav && ffmpeg -y -loglevel error -i public/music/bed.wav -c:a aac -b:a 160k public/music/bed.m4a && rm public/music/bed.wav"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}

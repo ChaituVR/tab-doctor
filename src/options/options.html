@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tab Doctor — Settings</title>
+  <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body class="options">
+  <main>
+    <header class="titlebar">
+      <img src="../../icons/icon48.png" width="28" height="28" alt="">
+      <span class="app">Tab Doctor</span>
+      <span class="version" id="version"></span>
+    </header>
+
+    <section class="group">
+      <ul class="list">
+        <li class="row">
+          <div class="text"><span class="label">Paused</span><span class="sub">Stop automatic actions</span></div>
+          <input type="checkbox" class="switch" id="paused">
+        </li>
+      </ul>
+    </section>
+
+    <section class="group">
+      <h2>Rules</h2>
+      <ul class="list" id="rules"></ul>
+    </section>
+
+    <section class="group">
+      <h2>Options</h2>
+      <ul class="list">
+        <li class="row">
+          <div class="text"><span class="label">Same window only</span><span class="sub">Duplicates across windows are kept — side-by-side is usually intentional</span></div>
+          <input type="checkbox" class="switch" id="sameWindowOnly">
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">When a duplicate appears</span><span class="sub">Switch to the tab you already had, or keep the one you just opened</span></div>
+          <select id="duplicateMode" class="select">
+            <option value="keep-existing">Switch to existing tab</option>
+            <option value="keep-newest">Keep the newest tab</option>
+          </select>
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">Ignore tracking parameters</span><span class="sub">Treat links that differ only by utm_*, fbclid, gclid, ref… as the same page</span></div>
+          <input type="checkbox" class="switch" id="ignoreTrackingParams">
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">Discard after</span><span class="sub">Hours untouched before a tab is unloaded from memory (needs the Discard rule on)</span></div>
+          <div class="stepper"><input type="number" id="discardHours" min="1" max="8760" step="1"><span>h</span></div>
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">Stale after</span><span class="sub">Hours since a tab was last viewed before it moves to the "Stale" group</span></div>
+          <div class="stepper"><input type="number" id="staleHours" min="1" max="720" step="1"><span>h</span></div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="group">
+      <h2>Snoozed</h2>
+      <ul class="list" id="snoozed"></ul>
+    </section>
+
+    <section class="group">
+      <h2>Recently closed</h2>
+      <ul class="list" id="history"></ul>
+    </section>
+
+    <section class="group">
+      <h2>Backup</h2>
+      <ul class="list">
+        <li class="row">
+          <div class="text"><span class="label">Export backup</span><span class="sub">Settings, snoozed tabs, closed-tab history — one JSON file</span></div>
+          <div class="pills"><button class="pill" id="export">Export</button></div>
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">Import backup</span><span class="sub">Merges with what's already here, never wipes</span></div>
+          <div class="pills"><button class="pill" id="import">Import</button></div>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </li>
+      </ul>
+    </section>
+
+    <section class="group">
+      <h2>About</h2>
+      <ul class="list">
+        <li class="row">
+          <div class="text"><span class="label">Fully offline</span><span class="sub">Zero network calls (enforced by CSP default-src 'none'), no content scripts, no host permissions, no analytics. Everything stays in this browser.</span></div>
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">Open source</span><span class="sub">MIT · read the code</span></div>
+          <div class="pills"><a class="pill" href="https://github.com/ChaituVR/tab-doctor" target="_blank" rel="noopener">GitHub ↗</a></div>
+        </li>
+        <li class="row">
+          <div class="text"><span class="label">Request a feature</span><span class="sub">Missing a rule? Found a bug? Open an issue.</span></div>
+          <div class="pills"><a class="pill" href="https://github.com/ChaituVR/tab-doctor/issues/new" target="_blank" rel="noopener">Request ↗</a></div>
+        </li>
+      </ul>
+    </section>
+
+    <section class="actions">
+      <button id="run" class="btn primary">Run Now</button>
+      <button id="undo" class="btn tinted" disabled>Undo</button>
+    </section>
+    <p id="status" class="status"></p>
+  </main>
+</body>
+<script type="module" src="options.js"></script>
+</html>

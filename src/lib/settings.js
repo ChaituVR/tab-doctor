@@ -2,7 +2,10 @@ export const DEFAULTS = {
   paused: false,
   sameWindowOnly: true,
   staleHours: 24,
-  rules: { 'close-duplicates': true, 'group-stale': true }
+  duplicateMode: 'keep-existing', // or 'keep-newest'
+  ignoreTrackingParams: false,
+  discardHours: 72,
+  rules: { 'close-duplicates': true, 'group-stale': true, 'discard-stale': false, 'group-by-site': false }
 };
 
 export function withDefaults(stored) {

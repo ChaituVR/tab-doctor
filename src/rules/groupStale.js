@@ -1,4 +1,5 @@
-import { isStale, NO_GROUP } from '../lib/tabs.js';
+import { isStale } from '../lib/tabs.js';
+import { ownGroups, rememberGroup } from '../lib/groups.js';
 
 export const STALE_GROUP_TITLE = 'Stale';
 
@@ -14,7 +15,11 @@ export default {
   triggers: ['alarm', 'manual'],
 
   async run({ tabs, settings }) {
-    const opts = { now: Date.now(), thresholdMs: settings.staleHours * 60 * 60 * 1000 };
+    // Tabs inside Tab Doctor's own site groups may still go stale; the Stale groups themselves are excluded.
+    const own = await ownGroups();
+    const staleGroups = new Set((await chrome.tabGroups.query({ title: STALE_GROUP_TITLE }).catch(() => [])).map(g => g.id));
+    const allowGroups = new Set([...own].filter(id => !staleGroups.has(id)));
+    const opts = { now: Date.now(), thresholdMs: settings.staleHours * 60 * 60 * 1000, allowGroups };
     const byWindow = new Map();
     for (const tab of tabs) {
       if (!isStale(tab, opts)) continue;
@@ -31,6 +36,7 @@ export default {
           : await chrome.tabs.group({ tabIds, createProperties: { windowId } });
         if (existing === null) {
           await chrome.tabGroups.update(groupId, { title: STALE_GROUP_TITLE, color: 'grey', collapsed: true });
+          await rememberGroup(groupId);
         }
         grouped += tabIds.length;
       } catch (err) {
