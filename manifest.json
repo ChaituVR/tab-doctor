@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Chaitu Manager",
+  "version": "1.0.0",
+  "description": "Tab hygiene rules, fully offline. Currently: close duplicate tabs, keeping the newest.",
+  "permissions": ["tabs"],
+  "background": { "service_worker": "src/background.js", "type": "module" },
+  "action": { "default_title": "Chaitu Manager: run all rules now" },
+  "content_security_policy": {
+    "extension_pages": "default-src 'none'; script-src 'self'"
+  }
+}
