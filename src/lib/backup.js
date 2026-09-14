@@ -26,6 +26,7 @@ export function validateBackup(raw) {
   if (!['keep-newest', 'keep-existing'].includes(settings.duplicateMode)) settings.duplicateMode = 'keep-newest';
   if (typeof settings.discardHours !== 'number' || settings.discardHours < 1 || settings.discardHours > 8760) settings.discardHours = 72;
   settings.ignoreTrackingParams = settings.ignoreTrackingParams === true;
+  settings.holdOnNavigate = settings.holdOnNavigate !== false;
   const snoozed = (Array.isArray(raw.snoozed) ? raw.snoozed : [])
     .filter(e => e && typeof e.id === 'string' && isUrl(e.url) && Number.isFinite(e.wakeAt))
     .map(e => ({ id: e.id, url: e.url, title: String(e.title || e.url), kind: String(e.kind || 'later'), wakeAt: e.wakeAt, snoozedAt: Number.isFinite(e.snoozedAt) ? e.snoozedAt : Date.now() }));

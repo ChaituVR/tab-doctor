@@ -5,6 +5,7 @@ import { dedupeKey } from './tabs.js';
 
 export const PROTECT_MS = 60 * 60 * 1000;
 export const GRACE_MS = 2 * 60 * 1000;
+const FOREVER = Number.MAX_SAFE_INTEGER;
 const KEY = 'protectedTabs';
 const area = () => chrome.storage.session ?? chrome.storage.local;
 
@@ -24,6 +25,18 @@ export async function protect(tabId, url, now = Date.now()) {
   const map = await read(now);
   map[tabId] = { until: now + PROTECT_MS, graceUntil: now + GRACE_MS, url };
   await area().set({ [KEY]: map });
+}
+
+/** The user navigated this tab onto a page that is open elsewhere: leave the whole group alone
+ *  until the tab moves on or closes. A manual run still cleans up, keeping this tab. */
+export async function hold(tabId, url, now = Date.now()) {
+  const map = await read(now);
+  map[tabId] = { until: FOREVER, graceUntil: FOREVER, url, hold: true };
+  await area().set({ [KEY]: map });
+}
+
+export async function holds(now = Date.now()) {
+  return new Map([...(await protection(now))].filter(([, v]) => v.hold));
 }
 
 export async function unprotect(tabId) {

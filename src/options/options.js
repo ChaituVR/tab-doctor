@@ -7,6 +7,7 @@ async function render() {
   $('staleHours').value = settings.staleHours;
   $('duplicateMode').value = settings.duplicateMode;
   $('ignoreTrackingParams').checked = settings.ignoreTrackingParams;
+  $('holdOnNavigate').checked = settings.holdOnNavigate;
   $('discardHours').value = settings.discardHours;
   renderRules(settings, $('rules'));
   await renderLastRun();
@@ -19,6 +20,7 @@ $('version').textContent = `v${chrome.runtime.getManifest().version}`;
 bindSwitch('paused', 'paused');
 bindSwitch('sameWindowOnly', 'sameWindowOnly');
 bindSwitch('ignoreTrackingParams', 'ignoreTrackingParams');
+bindSwitch('holdOnNavigate', 'holdOnNavigate');
 $('discardHours').addEventListener('change', e => {
   const hours = Math.min(8760, Math.max(1, Number(e.target.value) || 72));
   e.target.value = hours;

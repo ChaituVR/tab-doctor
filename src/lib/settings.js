@@ -4,6 +4,7 @@ export const DEFAULTS = {
   staleHours: 24,
   duplicateMode: 'keep-existing', // or 'keep-newest'
   ignoreTrackingParams: false,
+  holdOnNavigate: true,
   discardHours: 72,
   rules: { 'close-duplicates': true, 'group-stale': true, 'discard-stale': false, 'group-by-site': false }
 };

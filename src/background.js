@@ -5,10 +5,18 @@ import { STALE_GROUP_TITLE } from './rules/groupStale.js';
 import { SNOOZE_OPTIONS, computeWakeAt, alarmName, addSnoozed, removeSnoozed, listSnoozed, saveSnoozed } from './lib/snooze.js';
 import { addHistory, removeHistory, saveHistory, listHistory } from './lib/history.js';
 import { validateBackup, mergeHistory, mergeSnoozed } from './lib/backup.js';
-import { protection, protect, unprotect, noteNavigation } from './lib/protect.js';
+import { protection, protect, unprotect, noteNavigation, hold, holds } from './lib/protect.js';
+import { noteUrl, forgetUrl, seedUrls } from './lib/navigation.js';
+import { duplicateKey, isManageable } from './lib/tabs.js';
 import { forgetGroup } from './lib/groups.js';
 
 async function runRules(trigger) {
+  const results = await applyRules(trigger);
+  await reconcileHolds();
+  return results;
+}
+
+async function applyRules(trigger) {
   const settings = await getSettings();
   if (settings.paused && trigger !== 'manual') return [];
 
@@ -54,16 +62,59 @@ async function refreshBadge() {
   await chrome.action.setBadgeText({ text: paused ? 'II' : '' });
 }
 
+/** Other manageable tabs showing the same page as `tab`, under the current duplicate settings. */
+async function twinsOf(tab, settings, tabs) {
+  const key = tab && isManageable(tab) ? duplicateKey(tab, settings) : null;
+  if (key === null) return [];
+  return (tabs ?? await chrome.tabs.query({})).filter(t => t.id !== tab.id && isManageable(t) && duplicateKey(t, settings) === key);
+}
+
+async function setDuplicateBadge(tabId, count) {
+  const text = count ? `×${count + 1}` : '';
+  await chrome.action.setBadgeText({ tabId, text }).catch(() => {});
+  if (!count) return;
+  await chrome.action.setBadgeBackgroundColor({ tabId, color: '#ff9f0a' }).catch(() => {});
+  await chrome.action.setTitle({ tabId, title: `Tab Doctor — this page is open in ${count + 1} tabs. Kept because you navigated here.` }).catch(() => {});
+}
+
+/** The user browsed this tab onto a page that is open elsewhere: keep both, mark the badge. */
+async function holdIfDuplicate(tab) {
+  const settings = await getSettings();
+  if (!settings.holdOnNavigate || !tab) return;
+  const twins = await twinsOf(tab, settings);
+  if (!twins.length) return;
+  await hold(tab.id, tab.url);
+  await setDuplicateBadge(tab.id, twins.length);
+}
+
+/** Drop holds whose tab is gone, moved on, or no longer has a twin; keep badge counts current. */
+async function reconcileHolds() {
+  const held = await holds();
+  if (!held.size) return;
+  const settings = await getSettings();
+  const tabs = await chrome.tabs.query({});
+  for (const [tabId] of held) {
+    const tab = tabs.find(t => t.id === tabId);
+    const twins = tab ? await twinsOf(tab, settings, tabs) : [];
+    if (twins.length) { await setDuplicateBadge(tabId, twins.length); continue; }
+    await unprotect(tabId);
+    if (tab) await setDuplicateBadge(tabId, 0);
+  }
+}
+
 const onUrlChanged = debounce(() => runRules('url-changed'), 300);
 const onTabCreated = debounce(() => runRules('tab-created'), 300);
 const onTabRemoved = debounce(() => runRules('tab-removed'), 300);
 
-chrome.tabs.onUpdated.addListener(async (id, changeInfo) => {
+chrome.tabs.onUpdated.addListener(async (id, changeInfo, tab) => {
   if (!changeInfo.url) return;
   await noteNavigation(id, changeInfo.url);
+  const navigated = await noteUrl(id, changeInfo.url);
+  await setDuplicateBadge(id, 0);
+  if (navigated) await holdIfDuplicate(tab ?? await chrome.tabs.get(id).catch(() => null));
   onUrlChanged();
 });
-chrome.tabs.onRemoved.addListener(id => { unprotect(id); onTabRemoved(); });
+chrome.tabs.onRemoved.addListener(id => { unprotect(id); forgetUrl(id); onTabRemoved(); });
 chrome.tabs.onCreated.addListener(onTabCreated);
 chrome.storage.onChanged.addListener(refreshBadge);
 chrome.tabGroups.onRemoved.addListener(group => forgetGroup(group.id));
@@ -131,6 +182,7 @@ async function openSnoozePicker(tab) {
 }
 
 async function init() {
+  await seedUrls(await chrome.tabs.query({}));
   await refreshBadge();
   await chrome.alarms.create('hourly', { periodInMinutes: 60 });
   await installContextMenus();
@@ -183,6 +235,22 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     'snooze-picker': async () => {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
       await openSnoozePicker(tab);
+      return { ok: true };
+    },
+    'tab-status': async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      const twins = await twinsOf(tab, await getSettings());
+      return { tabId: tab?.id ?? null, held: tab ? (await holds()).has(tab.id) : false, twins: twins.map(t => ({ id: t.id, windowId: t.windowId, title: t.title })) };
+    },
+    'activate-tab': async () => {
+      const tab = await chrome.tabs.get(msg.tabId);
+      await chrome.tabs.update(tab.id, { active: true });
+      await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
+      return { ok: true };
+    },
+    'close-tab': async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      if (tab) await chrome.tabs.remove(tab.id);
       return { ok: true };
     },
     'history-clear': async () => { await saveHistory([]); return { ok: true }; },

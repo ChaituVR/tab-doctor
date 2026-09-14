@@ -8,7 +8,7 @@
 ## Description
 Tab Doctor quietly keeps your browser tidy so you don't have to.
 
-• Close duplicates — open a page you already have open and Tab Doctor switches you to the existing tab (or keeps the newest, your choice). Pin a tab to protect it. Undo, or reopen anything from Recently closed.
+• Close duplicates — open a page you already have open and Tab Doctor switches you to the existing tab (or keeps the newest, your choice). It never pulls a tab out from under you: browse into a page that's open elsewhere and both stay, with a ×2 badge. Pin a tab to protect it. Undo, or reopen anything from Recently closed.
 • Group stale tabs — tabs you haven't looked at in 24 hours (you choose) fold into a collapsed "Stale" group. Click one and it pops right back out.
 • Snooze tabs — right-click any page → Snooze → Later today, Tomorrow 9 AM, the Weekend, or pick any date and time. The tab closes and reopens itself on time.
 • Optional rules — group tabs by site into colour-coded groups; unload tabs untouched for days to free memory; ignore utm_/fbclid tracking parameters when comparing pages. All off by default.

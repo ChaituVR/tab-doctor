@@ -63,6 +63,8 @@ h2 { margin: 12px 0 6px 16px; font-size: 12px; font-weight: 500; text-transform:
 .stepper input:focus { outline: 2px solid var(--blue); }
 
 .popup #snoozed { margin-top: 8px; }
+#dupBanner .row { flex-wrap: wrap; row-gap: 8px; }
+#dupBanner .text { flex-basis: 100%; }
 #snoozed .row:not(.footer) { flex-wrap: wrap; row-gap: 8px; }
 #snoozed .row:not(.footer) .text { flex-basis: 100%; }
 .row.footer { min-height: 36px; justify-content: space-between; font-size: 12px; color: var(--secondary); }
