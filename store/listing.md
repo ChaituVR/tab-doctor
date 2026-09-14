@@ -40,6 +40,6 @@ Tab hygiene: closing duplicate tabs, grouping stale tabs, and snoozing tabs.
 - Remote code: No. Host permissions: none.
 
 ## Privacy practices (dashboard answers)
-- Does the extension collect user data? **No.**
-- Data usage certification: not sold to third parties, not used for unrelated purposes, not used for creditworthiness/lending. (All "no" — no data is collected at all.)
+- Data usage: tick **Web history** only (closed-tab history and snoozed list keep URLs + titles locally; the CWS FAQ says local-only storage still counts). Nothing else.
+- Certify all three: not sold to third parties, not used for unrelated purposes, not used for creditworthiness/lending.
 - Privacy policy URL: link to PRIVACY.md in the repo (see below).
