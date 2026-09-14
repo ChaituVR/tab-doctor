@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="titlebar">
+    <img src="../../icons/icon32.png" width="20" height="20" alt="">
+    <span class="app">Chaitu Manager</span>
+  </header>
+
+  <section class="group">
+    <ul class="list">
+      <li class="row">
+        <div class="text"><span class="label">Paused</span><span class="sub">Stop automatic actions</span></div>
+        <input type="checkbox" class="switch" id="paused">
+      </li>
+    </ul>
+  </section>
+
+  <section class="group">
+    <h2>Rules</h2>
+    <ul class="list" id="rules"></ul>
+  </section>
+
+  <section class="group">
+    <h2>Options</h2>
+    <ul class="list">
+      <li class="row">
+        <div class="text"><span class="label">Same window only</span><span class="sub">Duplicates across windows are kept</span></div>
+        <input type="checkbox" class="switch" id="sameWindowOnly">
+      </li>
+      <li class="row">
+        <div class="text"><span class="label">Stale after</span><span class="sub">Hours since a tab was last viewed</span></div>
+        <div class="stepper"><input type="number" id="staleHours" min="1" max="720" step="1"><span>h</span></div>
+      </li>
+    </ul>
+  </section>
+
+  <section class="group">
+    <h2>Snoozed</h2>
+    <ul class="list" id="snoozed"></ul>
+  </section>
+
+  <section class="actions">
+    <button id="run" class="btn primary">Run Now</button>
+    <button id="undo" class="btn tinted" disabled>Undo</button>
+  </section>
+  <p id="status" class="status"></p>
+</body>
+<script type="module" src="popup.js"></script>
+</html>

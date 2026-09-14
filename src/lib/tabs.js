@@ -12,6 +12,12 @@ export function dedupeKey(url) {
   }
 }
 
+export function duplicateKey(tab, { sameWindowOnly }) {
+  const key = dedupeKey(tab.url);
+  if (key === null) return null;
+  return sameWindowOnly ? `${tab.windowId}|${key}` : key;
+}
+
 export function isManageable(tab) {
   return !tab.pinned && dedupeKey(tab.url) !== null;
 }
@@ -29,4 +35,12 @@ export function groupBy(tabs, keyFn) {
 
 export function newestFirst(tabs) {
   return [...tabs].sort((a, b) => b.id - a.id);
+}
+
+export const NO_GROUP = -1;
+
+export function isStale(tab, { now, thresholdMs }) {
+  if (tab.active || tab.pinned || typeof tab.lastAccessed !== 'number') return false;
+  if (tab.groupId !== undefined && tab.groupId !== NO_GROUP) return false;
+  return now - tab.lastAccessed >= thresholdMs;
 }

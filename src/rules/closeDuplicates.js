@@ -1,4 +1,4 @@
-import { dedupeKey, groupBy, isManageable, newestFirst } from '../lib/tabs.js';
+import { duplicateKey, groupBy, isManageable, newestFirst } from '../lib/tabs.js';
 
 export default {
   id: 'close-duplicates',
@@ -6,8 +6,8 @@ export default {
   description: 'Same URL (ignoring #hash) open more than once: keep the newest, close the rest.',
   triggers: ['url-changed', 'manual'],
 
-  async run({ tabs }) {
-    const groups = groupBy(tabs.filter(isManageable), t => dedupeKey(t.url));
+  async run({ tabs, settings }) {
+    const groups = groupBy(tabs.filter(isManageable), t => duplicateKey(t, settings));
     const toClose = [];
     let toActivate = null;
 
@@ -15,14 +15,18 @@ export default {
       if (group.length < 2) continue;
       const [keep, ...rest] = newestFirst(group);
       if (rest.some(t => t.active)) toActivate = keep;
-      toClose.push(...rest.map(t => t.id));
+      toClose.push(...rest);
     }
 
-    if (toClose.length) await chrome.tabs.remove(toClose);
-    if (toActivate) {
-      await chrome.tabs.update(toActivate.id, { active: true });
-      await chrome.windows.update(toActivate.windowId, { focused: true });
+    const closed = [];
+    for (const tab of toClose) {
+      const ok = await chrome.tabs.remove(tab.id).then(() => true, () => false);
+      if (ok) closed.push({ url: tab.url, windowId: tab.windowId, title: tab.title });
     }
-    return { closed: toClose.length };
+    if (toActivate && closed.length) {
+      await chrome.tabs.update(toActivate.id, { active: true }).catch(() => {});
+      await chrome.windows.update(toActivate.windowId, { focused: true }).catch(() => {});
+    }
+    return { closed };
   }
 };

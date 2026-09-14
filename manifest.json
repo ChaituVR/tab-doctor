@@ -1,12 +1,36 @@
 {
   "manifest_version": 3,
   "name": "Chaitu Manager",
-  "version": "1.0.0",
-  "description": "Tab hygiene rules, fully offline. Currently: close duplicate tabs, keeping the newest.",
-  "permissions": ["tabs"],
-  "background": { "service_worker": "src/background.js", "type": "module" },
-  "action": { "default_title": "Chaitu Manager: run all rules now" },
+  "version": "1.3.0",
+  "description": "Tab hygiene rules, fully offline: close duplicates, group stale tabs, snooze tabs.",
+  "permissions": [
+    "tabs",
+    "tabGroups",
+    "alarms",
+    "contextMenus",
+    "storage"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Chaitu Manager",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
   "content_security_policy": {
-    "extension_pages": "default-src 'none'; script-src 'self'"
+    "extension_pages": "default-src 'none'; script-src 'self'; style-src 'self'"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   }
 }

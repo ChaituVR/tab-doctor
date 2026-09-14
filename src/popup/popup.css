@@ -1,0 +1,80 @@
+:root {
+  --bg: #f2f2f7; --card: #fff; --label: #000; --secondary: rgba(60,60,67,.6);
+  --separator: rgba(60,60,67,.14); --blue: #007aff; --blue-tint: rgba(0,122,255,.12);
+  --green: #34c759; --track: #e9e9eb; --knob: #fff; --input-bg: rgba(118,118,128,.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000; --card: #1c1c1e; --label: #fff; --secondary: rgba(235,235,245,.6);
+    --separator: rgba(84,84,88,.55); --blue: #0a84ff; --blue-tint: rgba(10,132,255,.2);
+    --green: #30d158; --track: #39393d; --knob: #fff; --input-bg: rgba(118,118,128,.24);
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  width: 320px; margin: 0; padding: 0 0 14px; background: var(--bg); color: var(--label);
+  font: 13px/1.35 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.titlebar { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; }
+.titlebar img { border-radius: 5px; }
+.app { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+
+.group { padding: 8px 16px 0; }
+h2 { margin: 12px 0 6px 16px; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .04em; color: var(--secondary); }
+.group:first-of-type h2 { margin-top: 2px; }
+
+.list { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: 12px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 8px 14px; }
+.row + .row { border-top: .5px solid var(--separator); margin-left: 14px; padding-left: 0; }
+.text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.label { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sub { font-size: 12px; color: var(--secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.switch {
+  appearance: none; -webkit-appearance: none; flex: none; width: 46px; height: 28px; margin: 0;
+  border-radius: 14px; background: var(--track); position: relative; cursor: pointer;
+  transition: background .2s ease;
+}
+.switch::before {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--knob); box-shadow: 0 3px 8px rgba(0,0,0,.15), 0 1px 1px rgba(0,0,0,.06);
+  transition: transform .2s cubic-bezier(.4,0,.2,1);
+}
+.switch:checked { background: var(--green); }
+.switch:checked::before { transform: translateX(18px); }
+.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+.stepper { display: flex; align-items: center; gap: 4px; color: var(--secondary); }
+.stepper input {
+  width: 56px; padding: 5px 8px; border: 0; border-radius: 8px; background: var(--input-bg); color: var(--label);
+  font: inherit; font-size: 14px; text-align: right; -moz-appearance: textfield;
+}
+.stepper input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.stepper input:focus { outline: 2px solid var(--blue); }
+
+#snoozed .row { flex-wrap: wrap; row-gap: 8px; }
+#snoozed .text { flex-basis: 100%; }
+.pills { display: flex; gap: 6px; flex: none; margin-left: auto; }
+.pill {
+  border: 0; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; font-weight: 500;
+  background: var(--blue-tint); color: var(--blue); cursor: pointer;
+}
+.pill:hover { filter: brightness(.95); }
+.pill.quiet { background: var(--input-bg); color: var(--secondary); padding: 5px 9px; }
+.empty { padding: 12px 14px; font-size: 13px; color: var(--secondary); }
+
+.actions { display: flex; gap: 10px; padding: 16px 16px 0; }
+.btn {
+  flex: 1; border: 0; border-radius: 12px; padding: 11px 0; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer;
+  transition: filter .15s ease, transform .05s ease;
+}
+.btn:active:not(:disabled) { transform: scale(.98); }
+.btn:disabled { opacity: .4; cursor: default; }
+.primary { background: var(--blue); color: #fff; }
+.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.tinted { background: var(--blue-tint); color: var(--blue); }
+
+.status { margin: 10px 16px 0; text-align: center; font-size: 12px; color: var(--secondary); min-height: 1.3em; }
