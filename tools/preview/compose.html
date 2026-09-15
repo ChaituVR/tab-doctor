@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1280px;height:800px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif}
+body{background:linear-gradient(135deg,#eef2f7 0%,#e4ebf5 50%,#eaf3ee 100%);position:relative}
+body.dark{background:linear-gradient(135deg,#0d1220 0%,#141a2a 50%,#0f1a17 100%)}
+.copy{position:absolute;left:96px;top:0;bottom:0;display:flex;flex-direction:column;justify-content:center;width:520px}
+h1{font-size:48px;font-weight:700;letter-spacing:-.02em;margin:0 0 18px;color:#1d1d1f;line-height:1.05}
+p{font-size:21px;line-height:1.45;margin:0;color:#6e6e73}
+.dark h1{color:#f5f5f7}.dark p{color:#a1a1a6}
+.frame{position:absolute;border-radius:16px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.22),0 0 0 .5px rgba(0,0,0,.12);background:#f2f2f7}
+.dark .frame{background:#1c1c1e;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 .5px rgba(255,255,255,.12)}
+iframe{border:0;display:block;width:100%;height:100%}
+</style></head><body>
+<div class="copy"><h1 id="h"></h1><p id="p"></p></div>
+<div class="frame" id="f"><iframe id="i"></iframe></div>
+<script>
+const q=new URLSearchParams(location.search);
+document.body.className=q.get('dark')?'dark':'';
+h.textContent=q.get('h')||'';p.textContent=q.get('p')||'';
+const w=+q.get('w')||320,ht=+q.get('ht')||760;
+f.style.width=w+'px';f.style.height=ht+'px';f.style.right=(+q.get('r')||120)+'px';f.style.top=((800-ht)/2)+'px';
+i.src=q.get('src');
+</script></body></html>

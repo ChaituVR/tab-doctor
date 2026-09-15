@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "zip": "rm -rf dist && mkdir -p dist && zip -qr dist/tab-doctor-$(node -p \"require('./manifest.json').version\").zip manifest.json icons src -x '*/.DS_Store' && ls -la dist"
+    "zip": "rm -rf dist && mkdir -p dist && zip -qr dist/tab-doctor-$(node -p \"require('./manifest.json').version\").zip manifest.json icons src -x '*/.DS_Store' && ls -la dist",
+    "shots": "node tools/preview/shots.mjs"
   }
 }

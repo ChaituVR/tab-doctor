@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif}
+body{background:radial-gradient(120% 100% at 50% 0%,#fbfbfd 0%,#f2f3f7 55%,#e3e6ee 100%);position:relative}
+.wrap{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:28px}
+.icon{background:#fff;border-radius:24%;box-shadow:0 12px 30px rgba(0,0,0,.14),0 0 0 1px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:center;line-height:1}
+h1{margin:0;font-weight:700;letter-spacing:-.03em;color:#1d1d1f;line-height:1}
+p{margin:6px 0 0;color:#6e6e73;line-height:1.2}
+.pills{display:flex;gap:8px;margin-top:14px}
+.pill{font-weight:600;color:#1d1d1f;background:rgba(0,0,0,.06);border-radius:999px;padding:6px 12px}
+.frame{border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.2),0 0 0 .5px rgba(0,0,0,.12);background:#f2f2f7;transform-origin:top left}
+iframe{border:0;display:block;width:320px;height:760px}
+</style></head><body>
+<div class="wrap" id="wrap"></div>
+<script>
+const kind=new URLSearchParams(location.search).get('kind');
+const size=(w,h)=>{document.body.style.width=w+'px';document.body.style.height=h+'px'};
+if(kind==='thumb'){
+  size(240,240);
+  wrap.innerHTML=`<div class="icon" style="width:150px;height:150px;font-size:96px">👨‍⚕️</div>`;
+} else if(kind==='small'){
+  size(440,280); wrap.style.flexDirection='column'; wrap.style.gap='14px';
+  wrap.innerHTML=`<div class="icon" style="width:96px;height:96px;font-size:60px">👨‍⚕️</div><div style="text-align:center"><h1 style="font-size:40px">Tab Doctor</h1><p style="font-size:17px">Tabs, kept healthy.</p></div>`;
+} else {
+  size(1400,560); wrap.style.justifyContent='flex-start'; wrap.style.paddingLeft='110px'; wrap.style.gap='0';
+  wrap.innerHTML=`<div style="display:flex;align-items:center;gap:34px;width:760px"><div class="icon" style="width:150px;height:150px;font-size:96px;flex:none">👨‍⚕️</div><div><h1 style="font-size:72px">Tab Doctor</h1><p style="font-size:26px;margin-top:10px;white-space:nowrap">Duplicates close themselves. Stale tabs fold away.<br>Snooze anything for later.</p><div class="pills" style="font-size:16px"><span class="pill">Free</span><span class="pill">Open source</span><span class="pill">Zero network calls</span></div></div></div>
+  <div class="frame" style="position:absolute;right:120px;top:44px;transform:scale(.62)"><iframe src="/src/popup/popup.html"></iframe></div>`;
+}
+</script></body></html>
