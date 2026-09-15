@@ -4,6 +4,7 @@ import { Intro } from './scenes/Intro';
 import { Duplicates } from './scenes/Duplicates';
 import { Stale } from './scenes/Stale';
 import { Snooze } from './scenes/Snooze';
+import { GroupBySite, GROUP_AT } from './scenes/GroupBySite';
 import { Settings } from './scenes/Settings';
 import { Options, FLIPS } from './scenes/Options';
 import { Privacy } from './scenes/Privacy';
@@ -21,6 +22,7 @@ const SCENES = [
   { name: 'duplicates', comp: Duplicates, frames: NARRATION ? 200 : 180, fade: false },
   { name: 'stale', comp: Stale, frames: 200, fade: false },
   { name: 'snooze', comp: Snooze, frames: 250, fade: false },
+  { name: 'sites', comp: GroupBySite, frames: 190, fade: false },
   { name: 'settings', comp: Settings, frames: 160, fade: true },
   { name: 'options', comp: Options, frames: 210, fade: true },
   { name: 'privacy', comp: Privacy, frames: NARRATION ? 195 : 150, fade: true },
@@ -45,6 +47,8 @@ const SFX: { file: string; at: number; gain?: number }[] = [
   { file: 'click', at: sceneStart('snooze') + 108 },
   { file: 'whoosh', at: sceneStart('snooze') + 112, gain: 0.5 },
   { file: 'chime', at: sceneStart('snooze') + 186, gain: 0.4 },
+  { file: 'whoosh', at: sceneStart('sites') + GROUP_AT, gain: 0.5 },
+  ...[0, 4, 8].map(d => ({ file: 'pop', at: sceneStart('sites') + GROUP_AT + 6 + d, gain: 0.3 })),
   { file: 'click', at: sceneStart('settings') + 78 },
   { file: 'switch', at: sceneStart('settings') + 82, gain: 0.6 },
   ...FLIPS.flatMap(f => [{ file: 'click', at: sceneStart('options') + f.press }, { file: 'switch', at: sceneStart('options') + f.press + 3, gain: 0.6 }]),

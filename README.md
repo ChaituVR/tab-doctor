@@ -46,7 +46,7 @@ Adding a feature = one new file in `src/rules/` + one line in `index.js`. `ctx` 
 `npm run shots` re-renders the store screenshots and promo tiles in `store/` from the real popup, settings and snooze pages (chrome.* stubbed, the manifest's CSP enforced). Needs Playwright with Chromium (`npx playwright install chromium`). Extra QA renders land in `store/checks/` (ignored).
 
 ## Promo video
-`video/` is a [Remotion](https://remotion.dev) project (49 s, 1080p, fully mocked — no screen recording). The music bed is synthesized with numpy (`npm run music`), so there is nothing to license. Optional narration (off by default) comes from macOS `say`: run `npm run voice`, then set `NARRATION = true` in `src/Video.tsx`.
+`video/` is a [Remotion](https://remotion.dev) project (55 s, 1080p, fully mocked — no screen recording). The music bed is synthesized with numpy (`npm run music`), so there is nothing to license. Optional narration (off by default) comes from macOS `say`: run `npm run voice`, then set `NARRATION = true` in `src/Video.tsx`.
 ```
 cd video && bun install && npm run studio   # preview
 npm run render                               # → video/out/tab-doctor.mp4

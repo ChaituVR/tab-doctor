@@ -24,6 +24,8 @@ export const STRIP_X = 96;
 const STRIP_W = WIN.width - STRIP_X - 24;
 
 export type Laid = { tab: TabState; x: number; width: number };
+/** A tab-group label chip plus the coloured line under its tabs (x/w/span in strip coordinates). */
+export type GroupChip = { title: string; color: string; x: number; w: number; span: number; opacity: number };
 
 export function layoutTabs(tabs: TabState[], pill?: Pill): { tabs: Laid[]; pillWidth: number } {
   const pillWidth = pill ? PILL_W * pill.w : 0;
@@ -40,8 +42,10 @@ export function layoutTabs(tabs: TabState[], pill?: Pill): { tabs: Laid[]; pillW
   return { tabs: laid, pillWidth };
 }
 
-export function Browser({ tabs, pill, children, counter }: { tabs: TabState[]; pill?: Pill; children?: ReactNode; counter?: string }) {
-  const { tabs: laid, pillWidth } = layoutTabs(tabs, pill);
+export function Browser({ tabs, pill, children, counter, layout, groups = [] }: { tabs: TabState[]; pill?: Pill; children?: ReactNode; counter?: string; layout?: Laid[]; groups?: GroupChip[] }) {
+  const auto = layoutTabs(tabs, pill);
+  const laid = layout ?? auto.tabs;
+  const pillWidth = auto.pillWidth;
   const shell: CSSProperties = {
     position: 'absolute', left: WIN.left, top: WIN.top, width: WIN.width,
     height: WIN.tabsTop + WIN.tabH + WIN.barH + WIN.contentH,
@@ -62,6 +66,16 @@ export function Browser({ tabs, pill, children, counter }: { tabs: TabState[]; p
           Stale <span style={{ background: 'rgba(255,255,255,.25)', borderRadius: 6, padding: '0 6px', fontSize: 13 }}>{pill.count}</span>
         </div>
       )}
+      {groups.map(g => g.w < 2 ? null : (
+        <div key={g.title}>
+          <div style={{
+            position: 'absolute', left: g.x, top: WIN.tabsTop + 5, width: g.w, height: WIN.tabH - 10, overflow: 'hidden',
+            background: g.color, borderRadius: 8, color: '#fff', fontSize: 15, fontWeight: 600,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: g.opacity, whiteSpace: 'nowrap', zIndex: 3
+          }}>{g.title}</div>
+          <div style={{ position: 'absolute', left: g.x, top: WIN.tabsTop + WIN.tabH - 3, width: g.span, height: 3, background: g.color, opacity: g.opacity, zIndex: 3 }} />
+        </div>
+      ))}
       {laid.map(({ tab, x, width }) => width < TAB_MIN_VISIBLE ? null : (
         <div key={tab.id} style={{
           position: 'absolute', left: x, top: WIN.tabsTop + (tab.lift ?? 0), width: Math.max(0, width - 2), height: WIN.tabH,
