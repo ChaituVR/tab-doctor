@@ -23,8 +23,8 @@ The part I care most about: it makes zero network calls — the manifest's CSP i
 What rule should I add next? On the list: per-site exceptions, settings sync, a wake-up toast, Firefox.
 
 ## Launch checklist
-- [ ] Web Store listing live (PH needs a real install link)
-- [ ] Repo public (open-source angle is the hook)
-- [ ] Gallery: video first (video/out/tab-doctor.mp4 → YouTube unlisted), then popup light/dark images
+- [x] Web Store listing live (PH needs a real install link)
+- [x] Repo public (open-source angle is the hook)
+- [x] Gallery: video first https://youtu.be/IfTwk-ZrhxE, then ph-thumbnail + 3 screenshots + marquee
 - [ ] Launch Tue–Thu, 12:01 AM PT (12:31 PM IST)
 - [ ] Reply to every comment for the first 6 hours
