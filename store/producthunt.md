@@ -7,7 +7,7 @@
 **Links:** https://chromewebstore.google.com/detail/icackaepcncclahofahchfjmgjdjipoh · https://github.com/ChaituVR/tab-doctor
 
 ## Description (260 max)
-A tiny Chrome extension that keeps tabs healthy: open a duplicate and it switches you to the tab you already had, untouched tabs fold into a "Stale" group, and right-click → Snooze brings a tab back later today, tomorrow, the weekend, or any date you pick. Undo everything. Fully offline, open source.
+Keeps Chrome tabs healthy: open a duplicate and it switches you to the tab you already had, untouched tabs fold into a collapsed Stale group, right-click → Snooze brings a tab back later today, tomorrow or any date. Undo anything. Offline, open source.
 
 ## Maker's first comment
 Hey PH 👋 I built Tab Doctor because I kept ending up with 60 tabs, half of them duplicates of GitHub PRs and docs I'd already opened.
