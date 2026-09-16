@@ -35,6 +35,9 @@ test/                  node --test
 Adding a feature = one new file in `src/rules/` + one line in `index.js`. `ctx` gives every rule the full tab list, settings, and the trigger (`url-changed`, `tab-created`, `tab-removed`, `alarm`, `manual`).
 
 ## Install
+**[Chrome Web Store](https://chromewebstore.google.com/detail/icackaepcncclahofahchfjmgjdjipoh)** — one click.
+
+From source:
 1. `chrome://extensions` → enable **Developer mode**
 2. **Load unpacked** → select this folder
 3. Toolbar icon opens the popup

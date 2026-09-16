@@ -4,7 +4,7 @@
 **Tagline (60 max):** Closes duplicate tabs, snoozes the rest. Zero network calls.
 **Topics:** Productivity, Chrome Extensions, Open Source, Privacy
 **Pricing:** Free
-**Links:** Chrome Web Store listing · GitHub repo
+**Links:** https://chromewebstore.google.com/detail/icackaepcncclahofahchfjmgjdjipoh · https://github.com/ChaituVR/tab-doctor
 
 ## Description (260 max)
 A tiny Chrome extension that keeps tabs healthy: open a duplicate and it switches you to the tab you already had, untouched tabs fold into a "Stale" group, and right-click → Snooze brings a tab back later today, tomorrow, the weekend, or any date you pick. Undo everything. Fully offline, open source.
