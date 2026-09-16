@@ -40,6 +40,8 @@ const SHOTS = [
   { name: 'promo-small', promo: 'small', w: 440, h: 280 },
   { name: 'promo-marquee', promo: 'marquee', w: 1400, h: 560 },
   { name: 'ph-thumbnail', promo: 'thumb', w: 240, h: 240 },
+  { name: 'screenshot-4-rules', page: 'explainer.html?kind=rules', w: 1280, h: 800 },
+  { name: 'screenshot-5-before-after', page: 'explainer.html?kind=before-after', w: 1280, h: 800 },
   // checks (not store assets): written to store/checks/
   light('checks/popup-empty-dark', '/src/popup/popup.html', 320, 640, 140, '', '', { fit: true, flags: { empty: true }, dark: true }),
   light('checks/popup-duplicate-light', '/src/popup/popup.html', 320, 640, 140, '', '', { fit: true, flags: { dup: true } }),
@@ -49,13 +51,13 @@ const SHOTS = [
 const wanted = process.argv.slice(2);
 const browser = await chromium.launch();
 for (const s of SHOTS.filter(x => !wanted.length || wanted.includes(x.name))) {
-  const ctx = await browser.newContext({ viewport: s.promo ? { width: s.w, height: s.h } : { width: 1280, height: 800 }, colorScheme: s.dark ? 'dark' : 'light' });
+  const ctx = await browser.newContext({ viewport: s.promo || s.page ? { width: s.w, height: s.h } : { width: 1280, height: 800 }, colorScheme: s.dark ? 'dark' : 'light' });
   await ctx.addInitScript(`window.__preview = ${JSON.stringify(s.flags || {})}`);
   await ctx.addInitScript({ path: path.join(TOOLS, 'stub.js') });
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') console.log('  console error in', s.name + ':', m.text().slice(0, 140)); });
   const qs = new URLSearchParams({ src: s.src, w: s.w, ht: s.ht, r: s.r, h: s.h, p: s.p, ...(s.dark ? { dark: 1 } : {}) });
-  await page.goto(s.promo ? `${base}/promo.html?kind=${s.promo}` : `${base}/compose.html?${qs}`);
+  await page.goto(s.page ? `${base}/${s.page}` : s.promo ? `${base}/promo.html?kind=${s.promo}` : `${base}/compose.html?${qs}`);
   const frameEl = await page.$('iframe');
   const frame = frameEl ? await frameEl.contentFrame() : null;
   if (frame) await frame.waitForLoadState('load');

@@ -1,0 +1,83 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1280px;height:800px;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",system-ui,sans-serif;color:#1d1d1f}
+body{background:radial-gradient(120% 100% at 50% 0%,#fbfbfd 0%,#f2f3f7 55%,#e3e6ee 100%);position:relative}
+.page{position:absolute;inset:0;padding:56px 72px;box-sizing:border-box}
+.brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600;color:#6e6e73}
+.brand .ic{width:30px;height:30px;border-radius:8px;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12);display:flex;align-items:center;justify-content:center;font-size:19px}
+h1{font-size:46px;font-weight:700;letter-spacing:-.025em;margin:10px 0 0;line-height:1.05}
+.lead{font-size:20px;color:#6e6e73;margin:8px 0 0}
+.card{display:flex;align-items:center;gap:28px;background:rgba(255,255,255,.75);border:1px solid rgba(0,0,0,.05);border-radius:18px;padding:18px 24px;box-shadow:0 10px 30px rgba(0,0,0,.05)}
+.card + .card{margin-top:14px}
+.card .t{width:250px;flex:none}
+.card .t b{display:block;font-size:20px;font-weight:700;letter-spacing:-.01em}
+.card .t span{display:block;font-size:14px;color:#6e6e73;margin-top:4px;line-height:1.35}
+.flow{display:flex;align-items:center;gap:14px;flex:1;min-width:0}
+.arrow{font-size:26px;color:#a1a1a6;flex:none}
+.strip{display:flex;align-items:flex-end;gap:2px;background:#dee1e6;border-radius:10px 10px 0 0;padding:8px 10px 0;height:44px;box-sizing:border-box;min-width:0}
+.strip.win{border-radius:12px;padding:10px;height:58px}
+.strip.win .tab{height:38px;border-radius:9px}
+.strip.before .tab{font-size:12px;padding:0 7px;gap:5px}
+.tab{display:flex;align-items:center;gap:6px;background:#e9ebee;border-radius:9px 9px 0 0;height:34px;padding:0 10px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;position:relative}
+.strip.win .tab{border-radius:9px}
+.tab.on{background:#fff}
+.tab .dot{width:12px;height:12px;border-radius:3px;flex:none}
+.tab.dup{outline:3px solid #0a84ff;outline-offset:-3px}
+.tab.grey{filter:grayscale(1);opacity:.75}
+.tab.gone{opacity:.28;text-decoration:line-through}
+.chip{height:26px;padding:0 10px;border-radius:7px;color:#fff;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:6px;flex:none;align-self:center}
+.chip .n{background:rgba(255,255,255,.28);border-radius:5px;padding:0 5px;font-size:11px}
+.grp{display:flex;gap:2px;align-items:flex-end;padding-bottom:0;border-bottom:3px solid var(--c);border-radius:0 0 2px 2px}
+.strip.win .grp{border-bottom:none;box-shadow:inset 0 -3px 0 var(--c);padding-bottom:3px;border-radius:0}
+.menu{background:rgba(255,255,255,.98);border-radius:10px;padding:6px;box-shadow:0 12px 40px rgba(0,0,0,.18),0 0 0 .5px rgba(0,0,0,.1);width:190px;font-size:13px}
+.menu div{padding:5px 10px;border-radius:6px}
+.menu .sel{background:#0a84ff;color:#fff}
+.menu .sep{height:1px;background:rgba(0,0,0,.1);margin:4px 6px;padding:0}
+.toast{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;color:#6e6e73}
+.pills{display:flex;gap:10px;margin-top:22px}
+.pill{font-size:14px;font-weight:600;background:rgba(0,0,0,.06);border-radius:999px;padding:7px 14px}
+.label{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6e6e73;margin:26px 0 8px}
+.callout{position:absolute;background:#1d1d1f;color:#fff;font-size:13px;font-weight:600;padding:6px 10px;border-radius:8px;white-space:nowrap}
+.callout:after{content:"";position:absolute;left:18px;top:100%;border:7px solid transparent;border-top-color:#1d1d1f}
+.callout.up:after{top:auto;bottom:100%;border-top-color:transparent;border-bottom-color:#1d1d1f}
+</style></head><body><div class="page" id="page"></div>
+<script>
+const kind=new URLSearchParams(location.search).get('kind')||'rules';
+const C={gh:'#24292f',vue:'#42b883',dc:'#5865f2',yt:'#ff0000',no:'#1d1d1f',fg:'#a259ff',so:'#f48024',fl:'#0a84ff',md:'#1d1d1f',li:'#5e6ad2',sp:'#1db954',do:'#4285f4'};
+const tab=(t,c,cls='',w)=>`<div class="tab ${cls}" style="${w?`width:${w}px`:''}"><span class="dot" style="background:${c}"></span><span style="overflow:hidden;text-overflow:ellipsis">${t}</span></div>`;
+const chip=(t,c,n)=>`<div class="chip" style="background:${c}">${t}${n?`<span class="n">${n}</span>`:''}</div>`;
+const strip=(inner,win=false,style='')=>`<div class="strip ${win?'win':''}" style="${style}">${inner}</div>`;
+const page=document.getElementById('page');
+if(kind==='rules'){
+  page.innerHTML=`
+  <div class="brand"><span class="ic">👨‍⚕️</span>Tab Doctor</div>
+  <h1>Three rules. Zero network calls.</h1>
+  <p class="lead">Runs quietly in the background. Every rule is a switch, and Undo is always one click away.</p>
+  <div style="margin-top:26px">
+    <div class="card"><div class="t"><b>Duplicates close themselves</b><span>Open a page you already have and it switches you to that tab. Pin a tab to protect it.</span></div>
+      <div class="flow">${strip(tab('PR #2244',C.gh,'',112)+tab('Vue Query',C.vue,'',104)+tab('PR #2244',C.gh,'dup',112)+tab('Discord',C.dc,'',96)+tab('Vue Query',C.vue,'dup on',104))}<span class="arrow">→</span>${strip(tab('PR #2244',C.gh,'on',112)+tab('Vue Query',C.vue,'',104)+tab('Discord',C.dc,'',96))}</div></div>
+    <div class="card"><div class="t"><b>Stale tabs fold away</b><span>Untouched for 24 hours (you choose) → into a collapsed group. Click one and it pops back.</span></div>
+      <div class="flow">${strip(tab('YouTube',C.yt,'grey',96)+tab('Notion',C.no,'',86)+tab('Figma',C.fg,'grey',84)+tab('Stack Ov…',C.so,'grey',96)+tab('Docs',C.do,'on',80))}<span class="arrow">→</span>${strip(chip('Stale','#a1a1a6',3)+tab('Notion',C.no,'',86)+tab('Docs',C.do,'on',80))}</div></div>
+    <div class="card"><div class="t"><b>Snooze for later</b><span>Right-click → Snooze. Later today, tomorrow 9 AM, the weekend, or any date. It comes back on its own.</span></div>
+      <div class="flow"><div class="menu"><div>Back</div><div>Reload</div><div class="sep"></div><div class="sel">Snooze tab &nbsp;›</div><div class="sep"></div><div>Inspect</div></div><div class="menu" style="width:170px;margin-left:-6px"><div>Later today</div><div class="sel">Tomorrow (9 AM)</div><div>Weekend</div><div>Pick date &amp; time…</div></div><span class="arrow">→</span><div class="toast">⏰ Back tomorrow, 9:00 AM</div></div></div>
+  </div>
+  <div class="pills"><span class="pill">Group tabs by site</span><span class="pill">Unload old tabs to free RAM</span><span class="pill">Recently closed + Undo</span><span class="pill">Backup to JSON</span><span class="pill">Open source · MIT</span></div>`;
+} else {
+  const before=[['PR #2244',C.gh,'dup'],['Vue Query',C.vue,'dup'],['Discord',C.dc,'dup'],['YouTube',C.yt,'grey'],['PR #2244',C.gh,'dup'],['Notion',C.no,''],['Figma',C.fg,'grey'],['Vue Query',C.vue,'dup'],['Stack Ov…',C.so,'grey'],['Flight opt…',C.fl,''],['MDN',C.md,'grey'],['Discord',C.dc,'dup'],['Issues',C.gh,''],['PR #2244',C.gh,'dup'],['Spotify',C.sp,'grey'],['Docs',C.do,'on']];
+  page.innerHTML=`
+  <div class="brand"><span class="ic">👨‍⚕️</span>Tab Doctor</div>
+  <h1>16 tabs in. 7 tabs out.</h1>
+  <p class="lead">Same window, one hourly pass. Nothing you're using is touched.</p>
+  <div class="label" style="margin-top:38px">Before</div>
+  ${strip(before.map(([t,c,k])=>tab(t,c,k,70)).join(''),true,'width:1136px').replace('class="strip win"','class="strip win before"')}
+  <div style="display:flex;gap:26px;margin-top:8px;font-size:14px;color:#6e6e73"><span><span style="display:inline-block;width:12px;height:12px;border:3px solid #0a84ff;border-radius:3px;vertical-align:-2px;margin-right:6px"></span>7 duplicates of 3 pages</span><span><span style="display:inline-block;width:12px;height:12px;background:#c7c7cc;border-radius:3px;vertical-align:-2px;margin-right:6px"></span>5 tabs untouched since yesterday</span></div>
+  <div style="text-align:center;font-size:30px;color:#a1a1a6;margin:26px 0 10px">↓</div>
+  <div class="label" style="margin-top:0">After</div>
+  <div style="position:relative;margin-top:50px">
+  ${strip(chip('Stale','#a1a1a6',5)+`<div class="grp" style="--c:#1a73e8">${chip('GitHub','#1a73e8')}${tab('PR #2244',C.gh,'',118)}${tab('Issues · tab-doctor',C.gh,'',150)}</div>`+tab('Vue Query docs',C.vue,'',134)+tab('Discord',C.dc,'',98)+tab('Notion · Roadmap',C.no,'',146)+tab('Flight options',C.fl,'',126)+tab('Docs · Launch plan',C.do,'on',150),true,'width:1136px')}
+    <div class="callout" style="left:0;top:-48px">5 stale tabs, one collapsed group. Click to bring one back.</div>
+    <div class="callout up" style="left:188px;top:72px">Optional: group tabs by site, colour-coded</div>
+    <div class="callout up" style="left:760px;top:72px">Newest copy kept. Undo or reopen anything.</div>
+  </div>
+  <div class="pills" style="margin-top:96px"><span class="pill">Zero network calls</span><span class="pill">No content scripts</span><span class="pill">Pause anytime</span><span class="pill">Open source · MIT</span></div>`;
+}
+</script></body></html>
