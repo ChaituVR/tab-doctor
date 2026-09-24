@@ -93,7 +93,11 @@ export function isStale(tab, { now, thresholdMs, allowGroups = new Set() }) {
 
 const TWO_LEVEL_TLDS = new Set(['co.uk', 'org.uk', 'ac.uk', 'gov.uk', 'co.in', 'co.jp', 'co.nz', 'co.za', 'com.au', 'net.au', 'org.au', 'com.br', 'com.mx', 'com.sg', 'com.tr']);
 
-/** Registrable domain: github.com, bbc.co.uk. null for non-http(s). */
+/** Domains where each subdomain is a different product, so docs.google.com and mail.google.com get separate groups. */
+const SPLIT_BY_SUBDOMAIN = new Set(['google.com', 'microsoft.com', 'live.com']);
+const LABEL_ALIASES = { 'mail.google.com': 'gmail' };
+
+/** Registrable domain: github.com, bbc.co.uk. Full host for SPLIT_BY_SUBDOMAIN domains. null for non-http(s). */
 export function siteOf(url) {
   if (dedupeKey(url) === null) return null;
   const u = new URL(url);
@@ -103,11 +107,17 @@ export function siteOf(url) {
   const parts = host.split('.');
   if (parts.length <= 2) return host;
   const last2 = parts.slice(-2).join('.');
-  return TWO_LEVEL_TLDS.has(last2) ? parts.slice(-3).join('.') : last2;
+  const site = TWO_LEVEL_TLDS.has(last2) ? parts.slice(-3).join('.') : last2;
+  return SPLIT_BY_SUBDOMAIN.has(site) ? host : site;
 }
 
+/** github.com → github, bbc.co.uk → bbc, docs.google.com → docs.google, mail.google.com → gmail. */
 export function siteLabel(site) {
-  return site.split('.')[0];
+  if (LABEL_ALIASES[site]) return LABEL_ALIASES[site];
+  if (/^[\d.]+$/.test(site)) return site;
+  const parts = site.split('.');
+  const tldLen = TWO_LEVEL_TLDS.has(parts.slice(-2).join('.')) ? 2 : 1;
+  return parts.slice(0, Math.max(1, parts.length - tldLen)).join('.');
 }
 
 export const GROUP_COLORS = ['blue', 'red', 'yellow', 'green', 'pink', 'purple', 'cyan', 'orange'];

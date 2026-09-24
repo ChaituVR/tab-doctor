@@ -138,7 +138,15 @@ test('siteOf / siteLabel / colorFor', async () => {
   assert.equal(siteOf('file:///Users/chaitu/Desktop/pr-reviews/before-after.html'), null);
   assert.equal(siteOf('http://localhost:8080/x'), 'localhost');
   assert.equal(siteOf('http://127.0.0.1:3000/'), '127.0.0.1');
+  assert.equal(siteOf('https://docs.google.com/document/d/1'), 'docs.google.com');
+  assert.equal(siteOf('https://www.google.com/search?q=x'), 'google.com');
   assert.equal(siteLabel('bbc.co.uk'), 'bbc');
+  assert.equal(siteLabel('github.com'), 'github');
+  assert.equal(siteLabel('docs.google.com'), 'docs.google');
+  assert.equal(siteLabel('mail.google.com'), 'gmail');
+  assert.equal(siteLabel('google.com'), 'google');
+  assert.equal(siteLabel('127.0.0.1'), '127.0.0.1');
+  assert.equal(siteLabel('localhost'), 'localhost');
   assert.equal(colorFor('github.com'), colorFor('github.com'));
   assert.ok(GROUP_COLORS.includes(colorFor('anything.io')));
 });

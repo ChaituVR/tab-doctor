@@ -7,7 +7,7 @@ import groupBySite from '../src/rules/groupBySite.js';
 import discardStale from '../src/rules/discardStale.js';
 import { DEFAULTS, withDefaults } from '../src/lib/settings.js';
 import { protect, protection, unprotect, noteNavigation, PROTECT_MS, GRACE_MS } from '../src/lib/protect.js';
-import { ownGroups, rememberGroup, forgetGroup } from '../src/lib/groups.js';
+import { ownGroups, rememberGroup, forgetGroup, siteGroups, rememberSiteGroup } from '../src/lib/groups.js';
 import { siteLabel } from '../src/lib/tabs.js';
 
 const HOUR = 60 * 60 * 1000;
@@ -145,6 +145,80 @@ test('groupBySite: a later tab joins the existing site group, Stale tabs are not
   assert.equal(state.tabs.find(t => t.id === 2).groupId, 60);
   assert.equal(state.tabs.find(t => t.id === 3).groupId, 40);
   assert.equal(state.groups.length, 2);
+});
+
+test('groupBySite: after a restart empties ownGroups, new tabs still join the surviving same-titled group', async () => {
+  const { state } = fakeChrome({
+    tabs: [{ id: 1, url: 'https://github.com/a', groupId: 60 }, { id: 2, url: 'https://github.com/b' }, { id: 3, url: 'https://github.com/c' }],
+    groups: [{ id: 60, title: 'github', color: 'blue' }]
+  });
+  const res = await groupBySite.run(ctx(state));
+  assert.equal(res.grouped, 2);
+  assert.equal(state.groups.length, 1, 'no second github group');
+  assert.ok(state.tabs.every(t => t.groupId === 60));
+});
+
+test('groupBySite: sites sharing a label (github.com, github.io) land in one group', async () => {
+  const { state } = fakeChrome({ tabs: [
+    { id: 1, url: 'https://github.com/a' }, { id: 2, url: 'https://github.com/b' },
+    { id: 3, url: 'https://me.github.io/x' }, { id: 4, url: 'https://you.github.io/y' }
+  ] });
+  const res = await groupBySite.run(ctx(state));
+  assert.equal(res.grouped, 4);
+  assert.equal(state.groups.filter(g => g.title === 'github').length, 1);
+  assert.equal(new Set(state.tabs.map(t => t.groupId)).size, 1);
+});
+
+test('groupBySite: Google products group per subdomain, plain google.com stays one group', async () => {
+  const { state } = fakeChrome({ tabs: [
+    { id: 1, url: 'https://docs.google.com/document/d/1' }, { id: 2, url: 'https://docs.google.com/spreadsheets/d/2' },
+    { id: 3, url: 'https://mail.google.com/mail/u/0/#inbox' }, { id: 4, url: 'https://mail.google.com/mail/u/1/#inbox' },
+    { id: 5, url: 'https://www.google.com/search?q=a' }, { id: 6, url: 'https://google.com/search?q=b' }
+  ] });
+  const res = await groupBySite.run(ctx(state));
+  assert.equal(res.grouped, 6);
+  assert.deepEqual(state.groups.map(g => g.title).sort(), ['docs.google', 'gmail', 'google']);
+  const gid = id => state.tabs.find(t => t.id === id).groupId;
+  assert.equal(gid(1), gid(2)); assert.equal(gid(3), gid(4)); assert.equal(gid(5), gid(6));
+  assert.equal(new Set([gid(1), gid(3), gid(5)]).size, 3);
+});
+
+test('groupBySite: reports new groups for naming only when smart names is on', async () => {
+  const tabs = [{ id: 1, url: 'https://github.com/a', title: 'PR 1 · GitHub' }, { id: 2, url: 'https://github.com/b', title: 'PR 2 · GitHub' }];
+  let { state } = fakeChrome({ tabs });
+  let res = await groupBySite.run(ctx(state));
+  assert.deepEqual(res.created, []);
+  ({ state } = fakeChrome({ tabs }));
+  res = await groupBySite.run(ctx(state, { settings: settings({ smartNames: true }) }));
+  assert.deepEqual(res.created, [{ groupId: 100, label: 'github', tabs: [{ title: 'PR 1 · GitHub', url: 'https://github.com/a' }, { title: 'PR 2 · GitHub', url: 'https://github.com/b' }] }]);
+  assert.equal(state.groups[0].title, 'github', 'label stays until the namer replies');
+});
+
+test('groupBySite: a remembered smart name titles new groups and is matched on lookup', async () => {
+  const { state } = fakeChrome({
+    tabs: [{ id: 1, url: 'https://github.com/a' }, { id: 2, url: 'https://github.com/b' }, { id: 3, url: 'https://x.com/1', groupId: 70 }, { id: 4, url: 'https://x.com/2' }],
+    groups: [{ id: 70, title: 'Social' }]
+  });
+  await chrome.storage.local.set({ groupNames: { github: 'Snapshot PRs', x: 'Social' } });
+  const res = await groupBySite.run(ctx(state, { settings: settings({ smartNames: true }) }));
+  assert.deepEqual(res.created, []);
+  assert.equal(state.groups.find(g => g.id === 100).title, 'Snapshot PRs');
+  assert.equal(state.tabs.find(t => t.id === 4).groupId, 70, 'joins the group carrying the remembered name even though it is not ours');
+});
+
+test('groupBySite: a retitled group is still found by its remembered id, and forgetGroup drops the mapping', async () => {
+  const { state } = fakeChrome({
+    tabs: [{ id: 1, url: 'https://github.com/a', groupId: 60 }, { id: 2, url: 'https://github.com/b' }],
+    groups: [{ id: 60, title: 'My GH stuff', color: 'blue' }]
+  });
+  await rememberGroup(60); await rememberSiteGroup(1, 'github', 60);
+  const res = await groupBySite.run(ctx(state));
+  assert.equal(res.grouped, 1);
+  assert.equal(state.groups.length, 1);
+  assert.equal(state.tabs.find(t => t.id === 2).groupId, 60);
+  await forgetGroup(60);
+  assert.deepEqual(await siteGroups(), {});
+  assert.deepEqual([...await ownGroups()], []);
 });
 
 test('discardStale: unloads only tabs past the threshold that are safe to unload', async () => {

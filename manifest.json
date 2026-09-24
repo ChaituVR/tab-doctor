@@ -1,14 +1,15 @@
 {
   "manifest_version": 3,
   "name": "Tab Doctor",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Keeps your tabs healthy, fully offline: closes duplicates, groups stale tabs, snoozes tabs for later.",
   "permissions": [
     "tabs",
     "tabGroups",
     "alarms",
     "contextMenus",
-    "storage"
+    "storage",
+    "offscreen"
   ],
   "background": {
     "service_worker": "src/background.js",

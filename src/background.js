@@ -1,5 +1,5 @@
 import { rules } from './rules/index.js';
-import { debounce } from './lib/scheduler.js';
+import { debounce, serialize } from './lib/scheduler.js';
 import { getSettings, getLastClosed, setLastClosed } from './lib/settings.js';
 import { STALE_GROUP_TITLE } from './rules/groupStale.js';
 import { SNOOZE_OPTIONS, computeWakeAt, alarmName, addSnoozed, removeSnoozed, listSnoozed, saveSnoozed } from './lib/snooze.js';
@@ -9,12 +9,14 @@ import { protection, protect, unprotect, noteNavigation, hold, holds } from './l
 import { noteUrl, forgetUrl, seedUrls } from './lib/navigation.js';
 import { duplicateKey, isManageable } from './lib/tabs.js';
 import { forgetGroup } from './lib/groups.js';
+import { nameGroups } from './lib/namer.js';
 
-async function runRules(trigger) {
+// Serialised: two overlapping runs each query groups before the other creates one and both create a duplicate.
+const runRules = serialize(async trigger => {
   const results = await applyRules(trigger);
   await reconcileHolds();
   return results;
-}
+});
 
 async function applyRules(trigger) {
   const settings = await getSettings();
@@ -35,6 +37,8 @@ async function applyRules(trigger) {
   const closed = results.flatMap(r => (r.closed || []).map(t => ({ ...t, rule: r.rule })));
   const grouped = results.reduce((n, r) => n + (r.grouped || 0), 0);
   const discarded = results.reduce((n, r) => n + (r.discarded || 0), 0);
+  const created = results.flatMap(r => r.created || []);
+  if (created.length) nameGroups(created).catch(err => console.warn('[Tab Doctor] smart names failed', err));
   if (closed.length) {
     await setLastClosed(closed);
     const closedAt = Date.now();

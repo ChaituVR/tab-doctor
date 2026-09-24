@@ -6,6 +6,7 @@ export const DEFAULTS = {
   ignoreTrackingParams: false,
   holdOnNavigate: true,
   discardHours: 72,
+  smartNames: false,
   rules: { 'close-duplicates': true, 'group-stale': true, 'discard-stale': false, 'group-by-site': false }
 };
 
