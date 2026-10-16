@@ -1,6 +1,9 @@
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import { launch } from './harness.mjs';
+import { writeFileSync, rmSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 let h;
 before(async () => { h = await launch(); });
@@ -142,4 +145,58 @@ test('options: the leave-alone card lists, adds and removes sites', async () => 
   await h.until(async () => { const l = (await h.local('settings')).leaveAlone; return l.length === 1 && l[0] === 'github.com'; }, 'example.org to be removed');
   assert.ok(!(await h.local('lastError')), 'no lastError');
   await page.close();
+});
+
+test('snooze: a tab Chrome refuses to reopen is retried, then parked in Recently closed', async () => {
+  const entry = { id: 'broken', url: 'http://', title: 'Broken link', kind: 'later', wakeAt: Date.now() - 1000, snoozedAt: Date.now() };
+  await h.inSw(e => chrome.storage.local.set({ snoozed: [e] }), entry);
+  const page = await h.ctx.newPage();
+  await page.goto(h.ext('src/options/options.html'));
+  const wake = () => page.evaluate(id => chrome.runtime.sendMessage({ type: 'snooze-wake', id }), entry.id);
+  for (const attempt of [1, 2]) {
+    assert.ok((await wake()).error, `attempt ${attempt} reports the error`);
+    assert.equal((await h.local('snoozed'))[0].failures, attempt);
+    assert.ok(await h.inSw(id => chrome.alarms.get(`snooze:${id}`), entry.id), 'retry alarm is armed');
+  }
+  assert.match((await wake()).error, /Recently closed/);
+  assert.deepEqual(await h.local('snoozed'), []);
+  assert.ok(!(await h.inSw(id => chrome.alarms.get(`snooze:${id}`), entry.id)), 'retry alarm is gone');
+  assert.equal((await h.local('history'))[0].url, entry.url);
+  await page.close();
+});
+
+test('snooze: a local file is refused unless file access is allowed, so the tab is never lost', async () => {
+  const allowed = await h.inSw(() => chrome.extension.isAllowedFileSchemeAccess());
+  const file = path.join(os.tmpdir(), `tab-doctor-${process.pid}.html`);
+  writeFileSync(file, '<!doctype html><title>local</title>');
+  const page = await h.ctx.newPage();
+  try {
+    await page.goto(`file://${file}`);
+    const tab = await h.until(async () => (await h.tabs()).find(t => t.url === `file://${file}`), 'the file tab');
+    const options = await h.ctx.newPage();
+    await options.goto(h.ext('src/options/options.html'));
+    const res = await options.evaluate(([tabId, wakeAt]) => chrome.runtime.sendMessage({ type: 'snooze-custom', tabId, wakeAt }), [tab.id, Date.now() + 60 * 60 * 1000]);
+    if (allowed) {
+      assert.deepEqual(res, { ok: true });
+    } else {
+      assert.match(res.error, /Allow access to file URLs/);
+      assert.ok((await h.tabs()).some(t => t.id === tab.id), 'the tab stays open');
+      assert.deepEqual(await h.local('snoozed') ?? [], []);
+    }
+    await options.close();
+  } finally {
+    await page.close().catch(() => {});
+    rmSync(file, { force: true });
+  }
+});
+
+test('errors: a stale lastError clears on the next run, even while paused', async () => {
+  await h.inSw(() => chrome.storage.local.set({ lastError: 'old failure' }));
+  await h.saveSettings({ paused: true });
+  try {
+    await h.openTab(h.url('/paused'));
+    await h.until(async () => (await h.local('lastError')) === null, 'lastError to clear');
+  } finally {
+    await h.saveSettings({ paused: false });
+  }
 });

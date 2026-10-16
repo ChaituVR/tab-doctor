@@ -22,9 +22,10 @@ async function runRules(trigger) {
 
 async function applyRules(trigger) {
   const settings = await getSettings();
-  if (settings.paused && trigger !== 'manual') return [];
-  const enabled = rules.filter(rule => rule.triggers.includes(trigger) && settings.rules[rule.id] !== false);
-  if (!enabled.length) return [];
+  const enabled = settings.paused && trigger !== 'manual'
+    ? []
+    : rules.filter(rule => rule.triggers.includes(trigger) && settings.rules[rule.id] !== false);
+  if (!enabled.length) { await chrome.storage.local.set({ lastError: null }); return []; }
   const results = [];
   for (const rule of enabled) {
     try {
@@ -138,13 +139,25 @@ chrome.tabs.onCreated.addListener(onTabCreated);
 chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.settings) return runEvent(async () => { await refreshBadge(); await syncLeaveMenuForActiveTab(); }); });
 chrome.tabGroups.onRemoved.addListener(group => runEvent(() => forgetGroup(group.id)));
 
+const WAKE_RETRY_MS = 60000;
+const WAKE_ATTEMPTS = 3;
+
+/** Reopens a snoozed tab. A URL Chrome refuses (file: without file access) is retried a few times, then parked in Recently closed. */
 async function wakeSnoozed(id) {
   const entry = (await listSnoozed()).find(item => item.id === id);
   if (!entry) return false;
   try { await reopen({ url: entry.url, active: false }); }
   catch (err) {
-    await chrome.alarms.create(alarmName(id), { when: Date.now() + 60000 }).catch(() => {});
-    throw err;
+    const failures = (entry.failures || 0) + 1;
+    if (failures < WAKE_ATTEMPTS) {
+      await saveSnoozed((await listSnoozed()).map(item => item.id === id ? { ...item, failures } : item));
+      await chrome.alarms.create(alarmName(id), { when: Date.now() + WAKE_RETRY_MS }).catch(() => {});
+      throw err;
+    }
+    await removeSnoozed(id);
+    await chrome.alarms.clear(alarmName(id));
+    await addHistory([{ url: entry.url, title: entry.title || entry.url, closedAt: Date.now(), rule: 'snooze' }]);
+    throw new Error(`Could not reopen "${entry.title || entry.url}" after ${WAKE_ATTEMPTS} tries, so it was moved to Recently closed. ${err?.message || err}`);
   }
   await removeSnoozed(id);
   await chrome.alarms.clear(alarmName(id));
@@ -153,6 +166,7 @@ async function wakeSnoozed(id) {
 
 async function snoozeTab(tab, kind, customWakeAt) {
   if (!tab?.url || tab.id == null || !isRestorableUrl(tab.url)) throw new Error('Only web pages and local files can be snoozed.');
+  if (tab.url.startsWith('file:') && !await chrome.extension.isAllowedFileSchemeAccess()) throw new Error('To snooze local files, turn on "Allow access to file URLs" for Tab Doctor in chrome://extensions.');
   const id = `${Date.now()}-${tab.id}`;
   const wakeAt = kind === 'custom' ? customWakeAt : computeWakeAt(kind);
   await addSnoozed({ id, url: tab.url, title: tab.title || tab.url, kind, wakeAt, snoozedAt: Date.now() });
@@ -279,6 +293,10 @@ chrome.tabs.onActivated.addListener(({ tabId }) => runEvent(async () => {
   const group = await chrome.tabGroups.get(tab.groupId).catch(() => null);
   if (group?.title === STALE_GROUP_TITLE) await chrome.tabs.ungroup(tabId).catch(() => {});
 }));
+
+chrome.windows.onFocusChanged.addListener(windowId => {
+  if (windowId !== chrome.windows.WINDOW_ID_NONE) runEvent(syncLeaveMenuForActiveTab);
+});
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handlers = {

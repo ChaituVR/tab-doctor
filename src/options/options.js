@@ -19,7 +19,10 @@ function renderLeaveAlone(sites) {
     const row = el('li', 'row');
     const text = el('div', 'text');
     text.append(el('span', 'label', site), el('span', 'sub', 'Never closed, grouped or unloaded'));
-    const remove = pill('✕', () => saveSettings({ leaveAlone: sites.filter(s => s !== site) }), true);
+    const remove = pill('✕', async () => {
+      const { leaveAlone } = await getSettings();
+      await saveSettings({ leaveAlone: leaveAlone.filter(s => s !== site) });
+    }, true);
     remove.setAttribute('aria-label', `Stop leaving ${site} alone`);
     row.append(text, remove);
     list.append(row);
