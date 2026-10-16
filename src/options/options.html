@@ -1,119 +1,113 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Tab Doctor — Settings</title>
   <link rel="stylesheet" href="../ui/ui.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body class="options">
-  <main>
-    <header class="titlebar">
-      <img src="../../icons/icon48.png" width="28" height="28" alt="">
-      <span class="app">Tab Doctor</span>
-      <span class="version" id="version"></span>
-    </header>
+  <div class="settings-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#care" aria-label="Tab Doctor settings">
+        <span class="brand-icon"><img src="../../icons/icon48.png" width="36" height="36" alt=""></span>
+        <span><strong>Tab Doctor</strong><span class="brand-caption">A calmer Chrome.</span></span>
+      </a>
+      <span class="nav-caption">YOUR SPACE</span>
+      <nav aria-label="Settings sections">
+        <a href="#care" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="4"/><path d="M3 9h18M9 13l2 2 4-4"/></svg>Tab care</a>
+        <a href="#snooze"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Snoozed tabs<span id="snoozeCount" class="nav-count" hidden></span></a>
+        <a href="#recent"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11a9 9 0 1 1 2 7M3 5v6h6M12 7v5l3 2"/></svg>Recently closed</a>
+        <a href="#backup"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="5" rx="2"/><path d="M5 9v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9M9 13h6"/></svg>Backup</a>
+        <a href="#about"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7v.1"/></svg>About</a>
+      </nav>
+      <div class="sidebar-footer"><span class="privacy-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4-5 8-8 9-3-1-8-5-8-9V6zM8 12l3 3 5-6"/></svg>Just you and your browser.</span><span>No accounts. Zero network calls.</span><span id="version" class="version"></span></div>
+    </aside>
 
-    <section class="group">
-      <ul class="list">
-        <li class="row">
-          <div class="text"><span class="label">Paused</span><span class="sub">Stop automatic actions</span></div>
-          <input type="checkbox" class="switch" id="paused">
-        </li>
-      </ul>
-    </section>
+    <main id="main">
+      <div class="settings-content" id="settingsContent">
+      <header class="page-header">
+        <div><p class="eyebrow">PREFERENCES</p><h1 id="pageTitle" tabindex="-1">Tab care</h1><p id="pageDescription" class="page-description">Small habits for a calmer browser.</p></div>
+        <span class="save-note">Changes save automatically</span>
+      </header>
 
-    <section class="group">
-      <h2>Rules</h2>
-      <ul class="list" id="rules"></ul>
-    </section>
+      <section class="care-status" aria-label="Automatic care">
+        <span id="careIndicator" class="care-indicator" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12l4 4L19 6"/></svg></span>
+        <div class="text"><span id="careTitle" class="label">Automatic care is on</span><span id="careDescription" class="sub">Running quietly in the background.</span></div>
+        <label class="pause-control" for="paused">Pause<input type="checkbox" class="switch" id="paused" aria-describedby="careDescription"></label>
+      </section>
 
-    <section class="group">
-      <h2>Options</h2>
-      <ul class="list">
-        <li class="row">
-          <div class="text"><span class="label">Same window only</span><span class="sub">Duplicates across windows are kept — side-by-side is usually intentional</span></div>
-          <input type="checkbox" class="switch" id="sameWindowOnly">
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">When a duplicate appears</span><span class="sub">Switch to the tab you already had, or keep the one you just opened</span></div>
-          <select id="duplicateMode" class="select">
-            <option value="keep-existing">Switch to existing tab</option>
-            <option value="keep-newest">Keep the newest tab</option>
-          </select>
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Keep the tab I'm browsing in</span><span class="sub">Land on a page that's already open elsewhere? Both stay and the toolbar badge shows ×2. New tabs are still deduplicated.</span></div>
-          <input type="checkbox" class="switch" id="holdOnNavigate">
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Ignore tracking parameters</span><span class="sub">Treat links that differ only by utm_*, fbclid, gclid, ref… as the same page</span></div>
-          <input type="checkbox" class="switch" id="ignoreTrackingParams">
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Smart group names</span><span class="sub">Chrome's on-device AI (Gemini Nano) titles new site groups from their tab titles. Nothing leaves your browser. <span id="aiStatus"></span></span></div>
-          <div class="pills"><button class="pill" id="aiDownload" hidden>Download model</button></div>
-          <input type="checkbox" class="switch" id="smartNames">
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Discard after</span><span class="sub">Hours untouched before a tab is unloaded from memory (needs the Discard rule on)</span></div>
-          <div class="stepper"><input type="number" id="discardHours" min="1" max="8760" step="1"><span>h</span></div>
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Stale after</span><span class="sub">Hours since a tab was last viewed before it moves to the "Stale" group</span></div>
-          <div class="stepper"><input type="number" id="staleHours" min="1" max="720" step="1"><span>h</span></div>
-        </li>
-      </ul>
-    </section>
+      <section id="care" class="pane" aria-labelledby="pageTitle">
+        <section class="settings-card" aria-labelledby="duplicatesTitle">
+          <div class="card-heading"><span class="section-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M15 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/></svg></span><div class="text"><h2 id="duplicatesTitle">Duplicates</h2><p>One page. One place to find it.</p></div></div>
+          <ul class="list" id="rules">
+            <li class="row"><div class="text"><label class="label" for="closeDuplicates">Close duplicate tabs</label><span class="sub" id="duplicateHelp">Keep one copy when the same page is open more than once.</span></div><input type="checkbox" class="switch" id="closeDuplicates" data-rule="close-duplicates" aria-describedby="duplicateHelp"></li>
+            <li class="row"><div class="text"><label class="label" for="duplicateMode">Which tab should stay?</label><span class="sub">Choose what happens when you open a duplicate.</span></div><select id="duplicateMode" class="select"><option value="keep-existing">Switch to existing tab</option><option value="keep-newest">Keep the newest tab</option></select></li>
+            <li class="row"><div class="text"><label class="label" for="sameWindowOnly">Only within the same window</label><span class="sub">Keep separate copies when you work across windows.</span></div><input type="checkbox" class="switch" id="sameWindowOnly"></li>
+            <li class="row"><div class="text"><label class="label" for="holdOnNavigate">Keep the tab I’m browsing</label><span class="sub">Navigate to a page that’s already open? Keep both and show a ×2 badge.</span></div><input type="checkbox" class="switch" id="holdOnNavigate"></li>
+            <li class="row"><div class="text"><label class="label" for="ignoreTrackingParams">Ignore tracking parameters</label><span class="sub">Match links even when tracking tags such as utm_source differ.</span></div><input type="checkbox" class="switch" id="ignoreTrackingParams"></li>
+          </ul>
+        </section>
 
-    <section class="group">
-      <h2>Snoozed</h2>
-      <ul class="list" id="snoozed"></ul>
-    </section>
+        <section class="settings-card" aria-labelledby="organizationTitle">
+          <div class="card-heading"><span class="section-icon violet" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="7" rx="2"/><rect x="14" y="4" width="7" height="7" rx="2"/><rect x="3" y="15" width="7" height="5" rx="2"/><rect x="14" y="15" width="7" height="5" rx="2"/></svg></span><div class="text"><h2 id="organizationTitle">Organization</h2><p>A little space for everything.</p></div></div>
+          <ul class="list">
+            <li class="row"><div class="text"><label class="label" for="groupStale">Group older tabs</label><span class="sub">Tuck untouched tabs into “Stale.” Selecting a tab brings it back out.</span></div><input type="checkbox" class="switch" id="groupStale" data-rule="group-stale"></li>
+            <li class="row timer-row"><div class="text"><label class="label" for="staleHours">Consider a tab stale after</label><span class="sub">Time since you last viewed it. Used when grouping older tabs is on.</span></div><div class="stepper"><input type="number" id="staleHours" min="1" max="720" step="1"><span>hours</span></div></li>
+            <li class="row"><div class="text"><label class="label" for="groupBySite">Group tabs by site</label><span class="sub">Give each site its own color-coded group. Your own groups stay as they are.</span></div><input type="checkbox" class="switch" id="groupBySite" data-rule="group-by-site"></li>
+            <li class="row"><div class="text"><label class="label" for="smartNames">Smart group names</label><span class="sub" id="smartNamesHelp">Chrome’s on-device AI (Gemini Nano) titles new site groups from their tab titles. Nothing leaves your browser. <span id="aiStatus"></span></span></div><button class="pill" id="aiDownload" hidden>Download model</button><input type="checkbox" class="switch" id="smartNames" aria-describedby="smartNamesHelp"></li>
+          </ul>
+        </section>
 
-    <section class="group">
-      <h2>Recently closed</h2>
-      <ul class="list" id="history"></ul>
-    </section>
+        <section class="settings-card" aria-labelledby="memoryTitle">
+          <div class="card-heading"><span class="section-icon mint" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3M10 10h4v4h-4z"/></svg></span><div class="text"><h2 id="memoryTitle">Memory</h2><p>Let tabs rest without losing your place.</p></div></div>
+          <ul class="list">
+            <li class="row"><div class="text"><label class="label" for="discardStale">Free memory from idle tabs</label><span class="sub">Unload older tabs. They stay in the tab bar and reload when opened.</span></div><input type="checkbox" class="switch" id="discardStale" data-rule="discard-stale"></li>
+            <li class="row timer-row"><div class="text"><label class="label" for="discardHours">Unload after</label><span class="sub">Hours untouched. Used when freeing memory is on.</span></div><div class="stepper"><input type="number" id="discardHours" min="1" max="8760" step="1"><span>hours</span></div></li>
+          </ul>
+        </section>
 
-    <section class="group">
-      <h2>Backup</h2>
-      <ul class="list">
-        <li class="row">
-          <div class="text"><span class="label">Export backup</span><span class="sub">Settings, snoozed tabs, closed-tab history — one JSON file</span></div>
-          <div class="pills"><button class="pill" id="export">Export</button></div>
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Import backup</span><span class="sub">Merges with what's already here, never wipes</span></div>
-          <div class="pills"><button class="pill" id="import">Import</button></div>
-          <input type="file" id="importFile" accept="application/json,.json" hidden>
-        </li>
-      </ul>
-    </section>
+        <section class="settings-card" aria-labelledby="leaveTitle">
+          <div class="card-heading"><span class="section-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4-5 8-8 9-3-1-8-5-8-9V6z"/></svg></span><div class="text"><h2 id="leaveTitle">Leave alone</h2><p>Sites Tab Doctor never closes, groups or unloads. Subdomains are included.</p></div></div>
+          <ul class="list" id="leaveAlone"></ul>
+          <ul class="list">
+            <li class="row"><div class="text"><label class="label" for="leaveInput">Add a site</label><span class="sub">A domain such as github.com. You can also right-click the toolbar icon on any page.</span></div><input type="text" id="leaveInput" class="site-input" placeholder="example.com" spellcheck="false" autocomplete="off"><button class="pill" id="leaveAdd">Add</button></li>
+          </ul>
+        </section>
+      </section>
 
-    <section class="group">
-      <h2>About</h2>
-      <ul class="list">
-        <li class="row">
-          <div class="text"><span class="label">Fully offline</span><span class="sub">Zero network calls (enforced by CSP default-src 'none'), no content scripts, no host permissions, no analytics. Everything stays in this browser.</span></div>
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Open source</span><span class="sub">MIT · read the code</span></div>
-          <div class="pills"><a class="pill" href="https://github.com/ChaituVR/tab-doctor" target="_blank" rel="noopener">GitHub ↗</a></div>
-        </li>
-        <li class="row">
-          <div class="text"><span class="label">Request a feature</span><span class="sub">Missing a rule? Found a bug? Open an issue.</span></div>
-          <div class="pills"><a class="pill" href="https://github.com/ChaituVR/tab-doctor/issues/new" target="_blank" rel="noopener">Request ↗</a></div>
-        </li>
-      </ul>
-    </section>
+      <section id="snooze" class="pane" aria-labelledby="pageTitle" hidden>
+        <div class="feature-note"><span class="section-icon blue" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div><h2>Save it for a better time.</h2><p>Right-click a page and choose <strong>Snooze tab</strong>. It closes now and reopens quietly when it’s time.</p><div class="preset-list"><span>Later · 6 hours</span><span>Tomorrow · 9 AM</span><span>Pick a date &amp; time</span></div><p class="local-time">Wake times follow your computer’s local time.</p></div></div>
+        <section class="settings-card" aria-label="Scheduled tabs"><ul class="list" id="snoozed"></ul></section>
+      </section>
 
-    <section class="actions">
-      <button id="run" class="btn primary">Run Now</button>
-      <button id="undo" class="btn tinted" disabled>Undo</button>
-    </section>
-    <p id="status" class="status"></p>
-  </main>
+      <section id="recent" class="pane" aria-labelledby="pageTitle" hidden>
+        <p class="section-note">Changed your mind? Reopen a tab below. Restored tabs get temporary protection from duplicate cleanup.</p>
+        <section class="settings-card" aria-label="Recently closed tabs"><ul class="list" id="history"></ul></section>
+      </section>
+
+      <section id="backup" class="pane" aria-labelledby="pageTitle" hidden>
+        <div class="feature-note"><span class="section-icon violet" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12M8 11l4 4 4-4M4 16v4h16v-4"/></svg></span><div><h2>Your setup, to go.</h2><p>Save your preferences, snoozed tabs, and recently closed tabs in one file. Keep it somewhere you trust.</p></div></div>
+        <section class="settings-card" aria-label="Backup actions"><ul class="list">
+          <li class="row"><div class="text"><span class="label">Export a backup</span><span class="sub">Download a JSON file to keep or move to another browser.</span></div><button class="pill" id="export">Export</button></li>
+          <li class="row"><div class="text"><span class="label">Import a backup</span><span class="sub">Restore saved preferences and merge tabs with what’s here.</span></div><button class="pill" id="import">Choose file</button><input type="file" id="importFile" accept="application/json,.json" hidden></li>
+        </ul></section>
+      </section>
+
+      <section id="about" class="pane" aria-labelledby="pageTitle" hidden>
+        <div class="about-intro"><img src="../../icons/icon128.png" width="72" height="72" alt=""><h2>A little less clutter.<br>A lot more room.</h2><p>Tab Doctor takes care of the small things,<br>so you can get back to what matters.</p></div>
+        <section class="settings-card" aria-label="About Tab Doctor"><ul class="list">
+          <li class="row"><div class="text"><span class="label">Private by design</span><span class="sub">No accounts, analytics, or network calls. Your settings and tab history stay in this browser.</span></div><span class="offline-tag">Offline</span></li>
+          <li class="row"><div class="text"><span class="label">Open source</span><span class="sub">Made to be understood. Available under the MIT license.</span></div><a class="pill" href="https://github.com/ChaituVR/tab-doctor" target="_blank" rel="noopener">View code ↗</a></li>
+          <li class="row"><div class="text"><span class="label">Make it better</span><span class="sub">Share an idea or let us know when something feels off.</span></div><a class="pill" href="https://github.com/ChaituVR/tab-doctor/issues/new" target="_blank" rel="noopener">Feedback ↗</a></li>
+        </ul></section>
+      </section>
+
+      </div>
+      <footer class="activity-bar"><div class="activity-copy"><span class="activity-label">Tab actions</span><p id="status" class="status" role="status" aria-live="polite"></p></div><div class="actions"><button id="undo" class="btn tinted" disabled>Undo</button><button id="run" class="btn primary">Run now</button></div></footer>
+    </main>
+  </div>
+  <script type="module" src="options.js"></script>
 </body>
-<script type="module" src="options.js"></script>
 </html>

@@ -1,5 +1,5 @@
 :root { --seg-selected: #fff; }
-@media (prefers-color-scheme: dark) { :root { --seg-selected: #636366; } }
+@media (prefers-color-scheme: dark) { :root { --seg-selected: #484848; } body.snooze { color-scheme: dark; } }
 
 body.snooze { width: auto; padding: 0 0 16px; }
 .sheet-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 4px; }

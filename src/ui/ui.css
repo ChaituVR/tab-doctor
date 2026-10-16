@@ -5,9 +5,9 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #000; --card: #1c1c1e; --label: #fff; --secondary: rgba(235,235,245,.6);
-    --separator: rgba(84,84,88,.55); --blue: #0a84ff; --blue-tint: rgba(10,132,255,.2);
-    --green: #30d158; --track: #39393d; --knob: #fff; --input-bg: rgba(118,118,128,.24);
+    --bg: #1f1f1f; --card: #252526; --label: #e5e5e5; --secondary: #a6a6a6;
+    --separator: #343434; --blue: #d7d7d7; --blue-tint: #333333;
+    --green: #83b89e; --track: #484848; --knob: #fff; --input-bg: #313131;
   }
 }
 
@@ -91,3 +91,7 @@ h2 { margin: 12px 0 6px 16px; font-size: 12px; font-weight: 500; text-transform:
 .tinted { background: var(--blue-tint); color: var(--blue); }
 
 .status { margin: 10px 16px 0; text-align: center; font-size: 12px; color: var(--secondary); min-height: 1.3em; }
+
+@media (prefers-color-scheme: dark) {
+  .primary { background: #d7d7d7; color: #1f1f1f; }
+}

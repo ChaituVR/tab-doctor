@@ -1,11 +1,11 @@
-import { isStale } from '../lib/tabs.js';
+import { isStale, isLeftAlone } from '../lib/tabs.js';
 import { ownGroups, rememberGroup } from '../lib/groups.js';
 
 export const STALE_GROUP_TITLE = 'Stale';
 
-async function staleGroupFor(windowId) {
-  const [existing] = await chrome.tabGroups.query({ windowId, title: STALE_GROUP_TITLE });
-  return existing?.id ?? null;
+async function staleGroupFor(windowId, own) {
+  const groups = await chrome.tabGroups.query({ windowId, title: STALE_GROUP_TITLE });
+  return (groups.find(g => own.has(g.id)) ?? groups[0])?.id ?? null;
 }
 
 export default {
@@ -22,7 +22,7 @@ export default {
     const opts = { now: Date.now(), thresholdMs: settings.staleHours * 60 * 60 * 1000, allowGroups };
     const byWindow = new Map();
     for (const tab of tabs) {
-      if (!isStale(tab, opts)) continue;
+      if (!isStale(tab, opts) || isLeftAlone(tab, settings)) continue;
       if (!byWindow.has(tab.windowId)) byWindow.set(tab.windowId, []);
       byWindow.get(tab.windowId).push(tab.id);
     }
@@ -30,7 +30,7 @@ export default {
     let grouped = 0;
     for (const [windowId, tabIds] of byWindow) {
       try {
-        const existing = await staleGroupFor(windowId);
+        const existing = await staleGroupFor(windowId, own);
         const groupId = existing !== null
           ? await chrome.tabs.group({ tabIds, groupId: existing })
           : await chrome.tabs.group({ tabIds, createProperties: { windowId } });

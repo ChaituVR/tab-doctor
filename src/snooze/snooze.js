@@ -1,4 +1,4 @@
-import { $, el, setStatus, formatWhen } from '../ui/ui.js';
+import { $, el, setStatus, formatWhen, send } from '../ui/ui.js';
 import { SNOOZE_OPTIONS, computeWakeAt } from '../lib/snooze.js';
 
 const MIN_AHEAD = 60_000;
@@ -70,15 +70,21 @@ setWakeAt(computeWakeAt('tomorrow'), 'tomorrow');
 
 $('cancel').addEventListener('click', () => window.close());
 $('snooze').addEventListener('click', async () => {
+  if ($('snooze').disabled) return;
   const wakeAt = selectedWakeAt();
   if (!Number.isFinite(wakeAt) || wakeAt < Date.now() + MIN_AHEAD) {
     showStatus('Pick a time at least a minute from now.');
     return;
   }
-  const res = await chrome.runtime.sendMessage({ type: 'snooze-custom', tabId, wakeAt });
-  if (res?.error) { showStatus(`Error: ${res.error}`); return; }
-  showStatus(`Snoozed until ${formatWhen(wakeAt)}`);
-  setTimeout(() => window.close(), 600);
+  $('snooze').disabled = true;
+  try {
+    await send('snooze-custom', { tabId, wakeAt });
+    showStatus(`Snoozed until ${formatWhen(wakeAt)}`);
+    setTimeout(() => window.close(), 600);
+  } catch (err) {
+    showStatus(`Error: ${err.message}`);
+    $('snooze').disabled = false;
+  }
 });
 
 requestAnimationFrame(fitWindow);

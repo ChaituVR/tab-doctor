@@ -1,4 +1,4 @@
-import { groupBy, siteOf, siteLabel, colorFor, NO_GROUP } from '../lib/tabs.js';
+import { groupBy, siteOf, siteLabel, colorFor, isLeftAlone, NO_GROUP } from '../lib/tabs.js';
 import { ownGroups, rememberGroup, siteGroups, rememberSiteGroup } from '../lib/groups.js';
 import { groupNames } from '../lib/names.js';
 import { STALE_GROUP_TITLE } from './groupStale.js';
@@ -9,7 +9,7 @@ export default {
   id: 'group-by-site',
   name: 'Group tabs by site',
   description: 'Two or more tabs from the same site get their own colour-coded tab group. Groups you made yourself are left alone.',
-  triggers: ['url-changed', 'manual'],
+  triggers: ['url-changed', 'tab-created', 'manual'],
 
   async run({ tabs, settings }) {
     const own = await ownGroups();
@@ -23,7 +23,7 @@ export default {
       const groups = await chrome.tabGroups.query({ windowId }).catch(() => []);
       const titleOf = new Map(groups.map(g => [g.id, g.title]));
       const candidates = windowTabs.filter(t => {
-        if (t.pinned || siteOf(t.url) === null) return false;
+        if (t.pinned || siteOf(t.url) === null || isLeftAlone(t, settings)) return false;
         if (t.groupId === NO_GROUP) return true;
         return own.has(t.groupId) && titleOf.get(t.groupId) !== STALE_GROUP_TITLE; // may re-sort our own site groups, never user groups or Stale
       });

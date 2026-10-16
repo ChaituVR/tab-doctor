@@ -1,36 +1,37 @@
 import { rules } from './rules/index.js';
-import { debounce, serialize } from './lib/scheduler.js';
-import { getSettings, getLastClosed, setLastClosed } from './lib/settings.js';
+import { debounce, createQueue } from './lib/scheduler.js';
+import { getSettings, saveSettings, getLastClosed, setLastClosed } from './lib/settings.js';
 import { STALE_GROUP_TITLE } from './rules/groupStale.js';
 import { SNOOZE_OPTIONS, computeWakeAt, alarmName, addSnoozed, removeSnoozed, listSnoozed, saveSnoozed } from './lib/snooze.js';
 import { addHistory, removeHistory, saveHistory, listHistory } from './lib/history.js';
 import { validateBackup, mergeHistory, mergeSnoozed } from './lib/backup.js';
 import { protection, protect, unprotect, noteNavigation, hold, holds } from './lib/protect.js';
 import { noteUrl, forgetUrl, seedUrls } from './lib/navigation.js';
-import { duplicateKey, isManageable } from './lib/tabs.js';
+import { duplicateKey, isManageable, isRestorableUrl, isLeftAlone, siteOf } from './lib/tabs.js';
 import { forgetGroup } from './lib/groups.js';
 import { nameGroups } from './lib/namer.js';
 
-// Serialised: two overlapping runs each query groups before the other creates one and both create a duplicate.
-const runRules = serialize(async trigger => {
+const enqueue = createQueue();
+const runEvent = task => enqueue(task).catch(err => chrome.storage.local.set({ lastError: String(err) }).catch(() => {}));
+
+async function runRules(trigger) {
   const results = await applyRules(trigger);
   await reconcileHolds();
   return results;
-});
+}
 
 async function applyRules(trigger) {
   const settings = await getSettings();
   if (settings.paused && trigger !== 'manual') return [];
-
-  const tabs = await chrome.tabs.query({});
-  const ctx = { tabs, settings, trigger, protection: await protection() };
+  const enabled = rules.filter(rule => rule.triggers.includes(trigger) && settings.rules[rule.id] !== false);
+  if (!enabled.length) return [];
   const results = [];
-  for (const rule of rules) {
-    if (!rule.triggers.includes(trigger) || settings.rules[rule.id] === false) continue;
+  for (const rule of enabled) {
     try {
+      const ctx = { tabs: await chrome.tabs.query({}), settings, trigger, protection: await protection() };
       results.push({ rule: rule.id, ...(await rule.run(ctx)) });
     } catch (err) {
-      console.error(`[Tab Doctor] rule ${rule.id} failed`, err);
+      results.push({ rule: rule.id, error: String(err) });
     }
   }
 
@@ -38,45 +39,56 @@ async function applyRules(trigger) {
   const grouped = results.reduce((n, r) => n + (r.grouped || 0), 0);
   const discarded = results.reduce((n, r) => n + (r.discarded || 0), 0);
   const created = results.flatMap(r => r.created || []);
-  if (created.length) nameGroups(created).catch(err => console.warn('[Tab Doctor] smart names failed', err));
+  if (created.length) nameGroups(created).catch(err => chrome.storage.local.set({ lastError: String(err) }).catch(() => {}));
   if (closed.length) {
     await setLastClosed(closed);
     const closedAt = Date.now();
     await addHistory(closed.map(t => ({ url: t.url, title: t.title || t.url, closedAt, rule: t.rule })));
   }
-  await chrome.storage.local.set({ lastRun: { at: Date.now(), trigger, closed: closed.length, grouped, discarded } });
+  await chrome.storage.local.set({ lastRun: { at: Date.now(), trigger, closed: closed.length, grouped, discarded }, lastError: results.filter(r => r.error).map(r => r.error).join('; ') || null });
   return results;
 }
 
 async function reopen(props) {
-  const tab = await chrome.tabs.create(props).catch(() => chrome.tabs.create({ url: props.url, active: props.active }));
+  const tab = await chrome.tabs.create(props).catch(err => {
+    if (props.windowId == null) throw err;
+    return chrome.tabs.create({ url: props.url, active: props.active });
+  });
   await protect(tab.id, props.url);
   return tab;
 }
 
 async function undoLastClose() {
   const closed = await getLastClosed();
-  for (const t of closed) await reopen({ url: t.url, windowId: t.windowId, active: false });
-  await setLastClosed([]);
+  for (const [index, t] of closed.entries()) {
+    await reopen({ url: t.url, windowId: t.windowId, active: false });
+    await setLastClosed(closed.slice(index + 1));
+  }
   return closed.length;
 }
 
 async function refreshBadge() {
   const { paused } = await getSettings();
   await chrome.action.setBadgeText({ text: paused ? 'II' : '' });
+  for (const tab of await chrome.tabs.query({})) await chrome.action.setBadgeText({ tabId: tab.id, text: paused ? 'II' : '' }).catch(() => {});
+  await reconcileHolds();
 }
 
 /** Other manageable tabs showing the same page as `tab`, under the current duplicate settings. */
 async function twinsOf(tab, settings, tabs) {
-  const key = tab && isManageable(tab) ? duplicateKey(tab, settings) : null;
+  const key = tab && isManageable(tab) && !isLeftAlone(tab, settings) ? duplicateKey(tab, settings) : null;
   if (key === null) return [];
-  return (tabs ?? await chrome.tabs.query({})).filter(t => t.id !== tab.id && isManageable(t) && duplicateKey(t, settings) === key);
+  return (tabs ?? await chrome.tabs.query({})).filter(t => t.id !== tab.id && isManageable(t) && !isLeftAlone(t, settings) && duplicateKey(t, settings) === key);
 }
 
 async function setDuplicateBadge(tabId, count) {
-  const text = count ? `×${count + 1}` : '';
+  const { paused } = await getSettings();
+  const text = paused ? 'II' : count ? `×${count + 1}` : '';
   await chrome.action.setBadgeText({ tabId, text }).catch(() => {});
-  if (!count) return;
+  if (!count) {
+    await chrome.action.setTitle({ tabId, title: 'Tab Doctor' }).catch(() => {});
+    return;
+  }
   await chrome.action.setBadgeBackgroundColor({ tabId, color: '#ff9f0a' }).catch(() => {});
   await chrome.action.setTitle({ tabId, title: `Tab Doctor — this page is open in ${count + 1} tabs. Kept because you navigated here.` }).catch(() => {});
 }
@@ -84,7 +96,7 @@ async function setDuplicateBadge(tabId, count) {
 /** The user browsed this tab onto a page that is open elsewhere: keep both, mark the badge. */
 async function holdIfDuplicate(tab) {
   const settings = await getSettings();
-  if (!settings.holdOnNavigate || !tab) return;
+  if (settings.paused || !settings.holdOnNavigate || !tab) return;
   const twins = await twinsOf(tab, settings);
   if (!twins.length) return;
   await hold(tab.id, tab.url);
@@ -99,51 +111,67 @@ async function reconcileHolds() {
   const tabs = await chrome.tabs.query({});
   for (const [tabId] of held) {
     const tab = tabs.find(t => t.id === tabId);
-    const twins = tab ? await twinsOf(tab, settings, tabs) : [];
+    const twins = tab && settings.holdOnNavigate ? await twinsOf(tab, settings, tabs) : [];
     if (twins.length) { await setDuplicateBadge(tabId, twins.length); continue; }
     await unprotect(tabId);
     if (tab) await setDuplicateBadge(tabId, 0);
   }
 }
 
-const onUrlChanged = debounce(() => runRules('url-changed'), 300);
-const onTabCreated = debounce(() => runRules('tab-created'), 300);
-const onTabRemoved = debounce(() => runRules('tab-removed'), 300);
+const onUrlChanged = debounce(() => runEvent(() => runRules('url-changed')), 300);
+const onTabCreated = debounce(() => runEvent(() => runRules('tab-created')), 300);
+const onTabRemoved = debounce(() => runEvent(() => runRules('tab-removed')), 300);
 
-chrome.tabs.onUpdated.addListener(async (id, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener((id, changeInfo, tab) => {
   if (!changeInfo.url) return;
-  await noteNavigation(id, changeInfo.url);
-  const navigated = await noteUrl(id, changeInfo.url);
-  await setDuplicateBadge(id, 0);
-  if (navigated) await holdIfDuplicate(tab ?? await chrome.tabs.get(id).catch(() => null));
-  onUrlChanged();
+  return runEvent(async () => {
+    await noteNavigation(id, changeInfo.url);
+    const navigated = await noteUrl(id, changeInfo.url);
+    await setDuplicateBadge(id, 0);
+    if (navigated) await holdIfDuplicate(tab ?? await chrome.tabs.get(id).catch(() => null));
+    if (tab?.active) await syncLeaveMenu(tab);
+    onUrlChanged();
+  });
 });
-chrome.tabs.onRemoved.addListener(id => { unprotect(id); forgetUrl(id); onTabRemoved(); });
+chrome.tabs.onRemoved.addListener(id => runEvent(async () => { await unprotect(id); await forgetUrl(id); onTabRemoved(); }));
 chrome.tabs.onCreated.addListener(onTabCreated);
-chrome.storage.onChanged.addListener(refreshBadge);
-chrome.tabGroups.onRemoved.addListener(group => forgetGroup(group.id));
+chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.settings) return runEvent(async () => { await refreshBadge(); await syncLeaveMenuForActiveTab(); }); });
+chrome.tabGroups.onRemoved.addListener(group => runEvent(() => forgetGroup(group.id)));
 
 async function wakeSnoozed(id) {
-  const entry = await removeSnoozed(id);
+  const entry = (await listSnoozed()).find(item => item.id === id);
   if (!entry) return false;
+  try { await reopen({ url: entry.url, active: false }); }
+  catch (err) {
+    await chrome.alarms.create(alarmName(id), { when: Date.now() + 60000 }).catch(() => {});
+    throw err;
+  }
+  await removeSnoozed(id);
   await chrome.alarms.clear(alarmName(id));
-  await reopen({ url: entry.url, active: false });
   return true;
 }
 
 async function snoozeTab(tab, kind, customWakeAt) {
-  if (!tab?.url || !tab.id) return;
+  if (!tab?.url || tab.id == null || !isRestorableUrl(tab.url)) throw new Error('Only web pages and local files can be snoozed.');
   const id = `${Date.now()}-${tab.id}`;
   const wakeAt = kind === 'custom' ? customWakeAt : computeWakeAt(kind);
   await addSnoozed({ id, url: tab.url, title: tab.title || tab.url, kind, wakeAt, snoozedAt: Date.now() });
-  await chrome.alarms.create(alarmName(id), { when: wakeAt });
-  await chrome.tabs.remove(tab.id).catch(() => {});
+  try {
+    await chrome.alarms.create(alarmName(id), { when: wakeAt });
+    await chrome.tabs.remove(tab.id);
+  }
+  catch (err) {
+    await removeSnoozed(id);
+    await chrome.alarms.clear(alarmName(id));
+    throw err;
+  }
 }
 
 async function reopenFromHistory(closedAt, url) {
-  const entry = await removeHistory(closedAt, url);
+  const entry = (await listHistory()).find(item => item.closedAt === closedAt && item.url === url);
   if (!entry) return false;
   await reopen({ url: entry.url, active: true });
+  await removeHistory(closedAt, url);
   return true;
 }
 
@@ -160,8 +188,43 @@ async function importBackup(raw) {
 async function wakeOverdue() {
   const now = Date.now();
   for (const entry of await listSnoozed()) {
-    if (entry.wakeAt <= now) await wakeSnoozed(entry.id);
+    if (entry.wakeAt <= now) {
+      try { await wakeSnoozed(entry.id); }
+      catch (err) { await chrome.storage.local.set({ lastError: String(err) }); }
+    }
   }
+}
+
+async function restoreAlarms() {
+  if (!await chrome.alarms.get('hourly')) await chrome.alarms.create('hourly', { periodInMinutes: 60 });
+  for (const entry of await listSnoozed()) {
+    if (!await chrome.alarms.get(alarmName(entry.id))) await chrome.alarms.create(alarmName(entry.id), { when: Math.max(entry.wakeAt, Date.now() + 1000) });
+  }
+}
+
+/** Adds or removes the tab's site from the leave-alone list. Returns the new state, or null when the tab has no site. */
+async function toggleLeaveAlone(tab) {
+  const site = siteOf(tab?.url);
+  if (site === null) return null;
+  const { leaveAlone } = await getSettings();
+  const leftAlone = !leaveAlone.includes(site);
+  await saveSettings({ leaveAlone: leftAlone ? [...leaveAlone, site] : leaveAlone.filter(s => s !== site) });
+  return leftAlone;
+}
+
+async function syncLeaveMenu(tab) {
+  const site = siteOf(tab?.url);
+  const settings = await getSettings();
+  await chrome.contextMenus.update('leave-site', {
+    enabled: site !== null,
+    checked: site !== null && isLeftAlone(tab, settings),
+    title: site ? `Leave ${site} alone` : 'Leave this site alone'
+  }).catch(() => {});
+}
+
+async function syncLeaveMenuForActiveTab() {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true }).catch(() => []);
+  if (tab) await syncLeaveMenu(tab);
 }
 
 async function installContextMenus() {
@@ -172,6 +235,7 @@ async function installContextMenus() {
   }
   chrome.contextMenus.create({ id: 'snooze-sep', parentId: 'snooze', type: 'separator', contexts: ['page', 'action'] });
   chrome.contextMenus.create({ id: 'snooze-custom', parentId: 'snooze', title: 'Pick date & time…', contexts: ['page', 'action'] });
+  chrome.contextMenus.create({ id: 'leave-site', type: 'checkbox', title: 'Leave this site alone', contexts: ['action'] });
 }
 
 async function openSnoozePicker(tab) {
@@ -188,38 +252,44 @@ async function openSnoozePicker(tab) {
 async function init() {
   await seedUrls(await chrome.tabs.query({}));
   await refreshBadge();
-  await chrome.alarms.create('hourly', { periodInMinutes: 60 });
+  await restoreAlarms();
   await installContextMenus();
+  await syncLeaveMenuForActiveTab();
   await wakeOverdue();
 }
 
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+chrome.contextMenus.onClicked.addListener((info, tab) => runEvent(async () => {
+  if (info.menuItemId === 'leave-site') { await toggleLeaveAlone(tab); await syncLeaveMenu(tab); return; }
   const kind = String(info.menuItemId).replace(/^snooze-/, '');
-  if (kind === 'custom') openSnoozePicker(tab);
-  else if (SNOOZE_OPTIONS.some(o => o.id === kind)) snoozeTab(tab, kind);
-});
-chrome.runtime.onStartup.addListener(init);
-chrome.runtime.onInstalled.addListener(init);
-chrome.alarms.onAlarm.addListener(alarm => {
-  if (alarm.name === 'hourly') runRules('alarm');
-  else if (alarm.name.startsWith('snooze:')) wakeSnoozed(alarm.name.slice('snooze:'.length));
-});
+  if (kind === 'custom') await openSnoozePicker(tab);
+  else if (SNOOZE_OPTIONS.some(o => o.id === kind)) await snoozeTab(tab, kind);
+}));
+chrome.runtime.onStartup.addListener(() => runEvent(init));
+chrome.runtime.onInstalled.addListener(() => runEvent(init));
+chrome.alarms.onAlarm.addListener(alarm => runEvent(async () => {
+  if (alarm.name === 'hourly') { await wakeOverdue(); await runRules('alarm'); }
+  else if (alarm.name.startsWith('snooze:')) await wakeSnoozed(alarm.name.slice('snooze:'.length));
+}));
 
-chrome.tabs.onActivated.addListener(async ({ tabId }) => {
+chrome.tabs.onActivated.addListener(({ tabId }) => runEvent(async () => {
   const tab = await chrome.tabs.get(tabId).catch(() => null);
+  await syncLeaveMenu(tab);
+  if ((await getSettings()).paused) return;
   if (!tab || tab.groupId === -1) return;
   const group = await chrome.tabGroups.get(tab.groupId).catch(() => null);
   if (group?.title === STALE_GROUP_TITLE) await chrome.tabs.ungroup(tabId).catch(() => {});
-});
+}));
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   const handlers = {
+    'save-settings': async () => ({ settings: await saveSettings(msg.patch) }),
     'run-now': async () => {
       const results = await runRules('manual');
       return {
         closed: results.flatMap(r => r.closed || []).length,
         grouped: results.reduce((n, r) => n + (r.grouped || 0), 0),
-        discarded: results.reduce((n, r) => n + (r.discarded || 0), 0)
+        discarded: results.reduce((n, r) => n + (r.discarded || 0), 0),
+        error: results.filter(r => r.error).map(r => r.error).join('; ') || undefined
       };
     },
     'undo': async () => ({ reopened: await undoLastClose() }),
@@ -243,8 +313,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     },
     'tab-status': async () => {
       const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-      const twins = await twinsOf(tab, await getSettings());
-      return { tabId: tab?.id ?? null, held: tab ? (await holds()).has(tab.id) : false, twins: twins.map(t => ({ id: t.id, windowId: t.windowId, title: t.title })) };
+      const settings = await getSettings();
+      const twins = await twinsOf(tab, settings);
+      const site = siteOf(tab?.url);
+      return { tabId: tab?.id ?? null, site, leftAlone: site !== null && isLeftAlone(tab, settings), held: tab ? (await holds()).has(tab.id) : false, twins: twins.map(t => ({ id: t.id, windowId: t.windowId, title: t.title })) };
+    },
+    'leave-site': async () => {
+      const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      const leftAlone = await toggleLeaveAlone(tab);
+      if (tab) await syncLeaveMenu(tab);
+      return { leftAlone };
     },
     'activate-tab': async () => {
       const tab = await chrome.tabs.get(msg.tabId);
@@ -260,8 +338,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     'history-clear': async () => { await saveHistory([]); return { ok: true }; },
     'import': async () => importBackup(msg.data)
   };
-  const handler = handlers[msg?.type];
+  const handler = Object.hasOwn(handlers, msg?.type) ? handlers[msg.type] : null;
   if (!handler) return false;
-  handler().then(sendResponse).catch(err => sendResponse({ error: String(err) }));
+  enqueue(handler).then(sendResponse).catch(err => sendResponse({ error: String(err) }));
   return true;
 });
+
+runEvent(restoreAlarms);

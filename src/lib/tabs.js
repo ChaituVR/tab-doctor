@@ -18,6 +18,12 @@ export function dedupeKey(url, { stripTracking = false } = {}) {
   }
 }
 
+export function isRestorableUrl(value) {
+  if (typeof value !== 'string') return false;
+  try { return ['http:', 'https:', 'file:'].includes(new URL(value).protocol); }
+  catch { return false; }
+}
+
 export function duplicateKey(tab, { sameWindowOnly, ignoreTrackingParams }) {
   const key = dedupeKey(tab.url, { stripTracking: ignoreTrackingParams });
   if (key === null) return null;
@@ -30,6 +36,25 @@ export function isDiscardable(tab, { now, thresholdMs }) {
   return now - tab.lastAccessed >= thresholdMs;
 }
 
+
+/** Sites the user asked Tab Doctor to leave alone: the site itself or any subdomain of it. */
+export function isLeftAlone(tab, settings) {
+  const list = settings?.leaveAlone;
+  if (!Array.isArray(list) || !list.length) return false;
+  const site = siteOf(tab?.url);
+  if (site === null) return false;
+  return list.some(entry => site === entry || site.endsWith(`.${entry}`));
+}
+
+/** A typed site → its siteOf key: "Docs.Google.com/x" → docs.google.com, "github" → null. */
+export function siteFromInput(value) {
+  if (typeof value !== 'string') return null;
+  const text = value.trim().toLowerCase();
+  if (!text) return null;
+  const site = siteOf(/^[a-z]+:\/\//.test(text) ? text : `https://${text}`);
+  if (site === null || (!site.includes('.') && site !== 'localhost')) return null;
+  return site;
+}
 
 export function isManageable(tab) {
   return !tab.pinned && dedupeKey(tab.url) !== null;
@@ -60,8 +85,9 @@ export function oldestFirst(tabs) {
  * (it becomes its group's keeper); while its grace period runs, the whole group is skipped unless ignoreGrace.
  */
 export function planDuplicates(tabs, settings, protection = new Map(), { now = Date.now(), ignoreGrace = false } = {}) {
-  const groups = groupBy(tabs.filter(isManageable), t => duplicateKey(t, settings));
+  const groups = groupBy(tabs.filter(t => isManageable(t) && !isLeftAlone(t, settings)), t => duplicateKey(t, settings));
   const toClose = [];
+  const keepers = new Map();
   let toActivate = null;
   for (const group of groups.values()) {
     if (group.length < 2) continue;
@@ -74,8 +100,9 @@ export function planDuplicates(tabs, settings, protection = new Map(), { now = D
     if (!closing.length) continue;
     if (closing.some(t => t.active)) toActivate = keep;
     toClose.push(...closing);
+    for (const tab of closing) keepers.set(tab.id, keep);
   }
-  return { toClose, toActivate };
+  return { toClose, toActivate, keepers };
 }
 
 /** Returns [keep, ...close] for a duplicate group according to the mode. */

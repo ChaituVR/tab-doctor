@@ -1,4 +1,4 @@
-import { isDiscardable } from '../lib/tabs.js';
+import { isDiscardable, isLeftAlone } from '../lib/tabs.js';
 
 export default {
   id: 'discard-stale',
@@ -10,7 +10,7 @@ export default {
     const opts = { now: Date.now(), thresholdMs: settings.discardHours * 60 * 60 * 1000 };
     let discarded = 0;
     for (const tab of tabs) {
-      if (!isDiscardable(tab, opts)) continue;
+      if (!isDiscardable(tab, opts) || isLeftAlone(tab, settings)) continue;
       const ok = await chrome.tabs.discard(tab.id).then(() => true, () => false);
       if (ok) discarded++;
     }

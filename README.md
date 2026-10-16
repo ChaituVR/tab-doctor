@@ -8,6 +8,7 @@ Tab hygiene rules for Chrome, fully offline. Only `tabs`, `tabGroups`, `alarms` 
 - **Close duplicate tabs** — same URL (ignoring `#hash`) open more than once: keep one, close the rest. Setting: **switch to the tab you already had** (default) or keep the newest. Pinned and browser-internal tabs are never touched. Applies to tabs you *open*: if you browse an existing tab onto a page that is open elsewhere, both stay, the toolbar badge shows `×2`, and the popup offers Switch / Close this (setting: **Keep the tab I'm browsing in**).
 - **Group stale tabs** — tabs not viewed for N hours (default 24, set in popup) move into a collapsed **Stale** tab group per window; hourly + on Run now. Focusing a stale tab pulls it back out of the group.
 - **Snooze tab** — right-click a page (or the toolbar icon) → *Snooze tab* → Later today (6h) / Tomorrow 9 AM / Weekend (Sat 9 AM) / **Pick date & time…** (a small calendar window; also reachable from the popup's *Snooze this tab*). The tab closes and reopens itself on time; the popup lists snoozed tabs with Copy link / Open now / forget.
+- **Leave alone list** — sites Tab Doctor never closes, groups or unloads (subdomains included). Toggle from the popup, the toolbar icon's right-click menu, or Settings.
 - **Group tabs by site** (off by default) — two or more tabs from the same site get a colour-coded tab group (github, google…). Groups you made by hand are never touched; stale folding still works inside these. Optional **Smart group names** lets Chrome's built-in Gemini Nano title new groups from their tab titles, fully on-device.
 - **Discard stale tabs** (off by default) — unload tabs untouched for N hours (default 72) from memory; they stay in the strip and reload on click.
 - **Ignore tracking parameters** (off by default) — links differing only by `utm_*`, `fbclid`, `gclid`, `ref`… count as the same page for dedupe.
@@ -43,7 +44,7 @@ From source:
 3. Toolbar icon opens the popup
 
 ## Test
-`node --test` (or `npm test`)
+`node --test` (or `npm test`) `npm run e2e` launches headless Chromium with the unpacked extension via Playwright and drives the real service worker, popup and settings page (`HEADED=1` to watch it).
 
 ## Store assets
 `npm run shots` re-renders the store screenshots and promo tiles in `store/` from the real popup, settings and snooze pages (chrome.* stubbed, the manifest's CSP enforced). Needs Playwright with Chromium (`npx playwright install chromium`). Extra QA renders land in `store/checks/` (ignored).

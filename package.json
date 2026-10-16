@@ -4,8 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test",
+    "test": "node --test \"test/**/*.test.mjs\"",
     "zip": "rm -rf dist && mkdir -p dist && zip -qr dist/tab-doctor-$(node -p \"require('./manifest.json').version\").zip manifest.json icons src -x '*/.DS_Store' && ls -la dist",
-    "shots": "node tools/preview/shots.mjs"
+    "shots": "node tools/preview/shots.mjs",
+    "e2e": "node --test \"e2e/**/*.test.mjs\""
+  },
+  "devDependencies": {
+    "playwright": "1.53.1"
   }
 }

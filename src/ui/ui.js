@@ -1,11 +1,33 @@
 import { rules } from '../rules/index.js';
-import { getSettings, saveSettings, getLastClosed } from '../lib/settings.js';
+import { getSettings, getLastClosed } from '../lib/settings.js';
 import { listSnoozed } from '../lib/snooze.js';
 import { listHistory, HISTORY_CAP } from '../lib/history.js';
 import { serializeBackup } from '../lib/backup.js';
 
 export const $ = id => document.getElementById(id);
-export const send = (type, extra = {}) => chrome.runtime.sendMessage({ type, ...extra });
+export async function send(type, extra = {}) {
+  const response = await chrome.runtime.sendMessage({ type, ...extra });
+  if (!response) throw new Error('Tab Doctor did not respond. Try reopening the extension.');
+  if (response.error) throw new Error(response.error);
+  return response;
+}
+
+export async function saveSettings(patch) {
+  return (await send('save-settings', { patch })).settings;
+}
+
+export async function performAction(button, action) {
+  if (button.dataset.pending) return;
+  button.dataset.pending = 'true';
+  button.disabled = true;
+  try { return await action(); }
+  catch (err) { setStatus(`Error: ${err.message}`); }
+  finally {
+    delete button.dataset.pending;
+    button.disabled = false;
+    if (button.id === 'undo') await refreshUndo(button).catch(err => setStatus(`Error: ${err.message}`));
+  }
+}
 
 export function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -16,7 +38,7 @@ export function el(tag, className, text) {
 
 export function pill(text, onClick, quiet = false) {
   const b = el('button', quiet ? 'pill quiet' : 'pill', text);
-  b.addEventListener('click', onClick);
+  b.addEventListener('click', () => performAction(b, onClick));
   return b;
 }
 
@@ -43,12 +65,28 @@ export function ago(ts) {
 
 const RULE_LABEL = { 'close-duplicates': 'duplicate', 'group-stale': 'stale' };
 
-export function openSettings() {
-  chrome.runtime.openOptionsPage();
+export function openSettings(section) {
+  if (typeof section === 'string') return chrome.tabs.create({ url: chrome.runtime.getURL(`src/options/options.html#${section}`) });
+  return chrome.runtime.openOptionsPage();
 }
 
 export function bindSwitch(id, key) {
-  $(id).addEventListener('change', e => saveSettings({ [key]: e.target.checked }));
+  bindSetting(id, key);
+}
+
+export function bindSetting(id, key, { rule = false, parse = value => value } = {}) {
+  const input = $(id);
+  input.addEventListener('change', async () => {
+    const value = input.type === 'checkbox' ? input.checked : parse(input.value);
+    input.disabled = true;
+    let settings;
+    try { settings = await saveSettings(rule ? { rules: { [key]: value } } : { [key]: value }); }
+    catch (err) {
+      setStatus(`Could not save: ${err.message}`);
+      settings = await getSettings().catch(() => null);
+    } finally { input.disabled = false; }
+    if (settings) input[input.type === 'checkbox' ? 'checked' : 'value'] = rule ? settings.rules[key] : settings[key];
+  });
 }
 
 export function renderRules(settings, listEl) {
@@ -59,16 +97,18 @@ export function renderRules(settings, listEl) {
     text.append(el('span', 'label', rule.name), el('span', 'sub', rule.description));
     const toggle = el('input', 'switch');
     toggle.type = 'checkbox';
+    toggle.id = `rule-${rule.id}`;
+    toggle.setAttribute('aria-label', rule.name);
     toggle.checked = settings.rules[rule.id] !== false;
-    toggle.addEventListener('change', () => saveSettings({ rules: { [rule.id]: toggle.checked } }));
     row.append(text, toggle);
     listEl.append(row);
+    bindSetting(toggle.id, rule.id, { rule: true });
   }
 }
 
 export async function renderSnoozed(listEl, { limit = Infinity, onChange } = {}) {
-  listEl.replaceChildren();
   const all = (await listSnoozed()).sort((a, b) => a.wakeAt - b.wakeAt);
+  listEl.replaceChildren();
   if (!all.length) {
     listEl.append(el('li', 'empty', 'Nothing snoozed. Right-click a page → Snooze tab.'));
     return all.length;
@@ -85,9 +125,10 @@ export async function renderSnoozed(listEl, { limit = Infinity, onChange } = {})
       copy.textContent = 'Copied';
       setTimeout(() => (copy.textContent = 'Copy'), 1200);
     });
-    const open = pill('Open', async () => { await send('snooze-wake', { id: e.id }); onChange?.(); });
-    const forget = pill('✕', async () => { await send('snooze-cancel', { id: e.id }); onChange?.(); }, true);
+    const open = pill('Open', async () => { await send('snooze-wake', { id: e.id }); await onChange?.(); });
+    const forget = pill('✕', async () => { await send('snooze-cancel', { id: e.id }); await onChange?.(); }, true);
     forget.title = 'Forget this tab';
+    forget.setAttribute('aria-label', `Forget ${e.title}`);
     pills.append(copy, open, forget);
     row.append(text, pills);
     listEl.append(row);
@@ -95,7 +136,7 @@ export async function renderSnoozed(listEl, { limit = Infinity, onChange } = {})
   if (all.length > limit) {
     const more = el('li', 'row footer');
     const link = el('button', 'link', `See all ${all.length} ↗`);
-    link.addEventListener('click', openSettings);
+    link.addEventListener('click', () => openSettings('snooze'));
     more.append(el('span', '', ''), link);
     listEl.append(more);
   }
@@ -103,8 +144,8 @@ export async function renderSnoozed(listEl, { limit = Infinity, onChange } = {})
 }
 
 export async function renderHistory(listEl, { limit = Infinity, onChange } = {}) {
-  listEl.replaceChildren();
   const entries = await listHistory();
+  listEl.replaceChildren();
   if (!entries.length) {
     listEl.append(el('li', 'empty', 'Nothing closed yet.'));
     return 0;
@@ -116,7 +157,7 @@ export async function renderHistory(listEl, { limit = Infinity, onChange } = {})
     title.title = e.url;
     text.append(title, el('span', 'sub', `${ago(e.closedAt)} · ${RULE_LABEL[e.rule] || e.rule}`));
     const pills = el('div', 'pills');
-    pills.append(pill('Reopen', async () => { await send('history-reopen', { closedAt: e.closedAt, url: e.url }); onChange?.(); }));
+    pills.append(pill('Reopen', async () => { await send('history-reopen', { closedAt: e.closedAt, url: e.url }); await onChange?.(); }));
     row.append(text, pills);
     listEl.append(row);
   }
@@ -124,11 +165,11 @@ export async function renderHistory(listEl, { limit = Infinity, onChange } = {})
   footer.append(el('span', '', `${entries.length} kept (last ${HISTORY_CAP})`));
   if (entries.length > limit) {
     const link = el('button', 'link', `See all ↗`);
-    link.addEventListener('click', openSettings);
+    link.addEventListener('click', () => openSettings('recent'));
     footer.append(link);
   } else {
     const clear = el('button', 'link', 'Clear');
-    clear.addEventListener('click', async () => { await send('history-clear'); onChange?.(); });
+    clear.addEventListener('click', () => performAction(clear, async () => { await send('history-clear'); await onChange?.(); }));
     footer.append(clear);
   }
   listEl.append(footer);
@@ -137,12 +178,13 @@ export async function renderHistory(listEl, { limit = Infinity, onChange } = {})
 
 export async function refreshUndo(btn) {
   const closed = await getLastClosed();
-  btn.disabled = closed.length === 0;
+  btn.disabled = Boolean(btn.dataset.pending) || closed.length === 0;
   btn.textContent = closed.length ? `Undo (${closed.length})` : 'Undo';
 }
 
 export async function renderLastRun() {
-  const { lastRun } = await chrome.storage.local.get('lastRun');
+  const { lastRun, lastError } = await chrome.storage.local.get(['lastRun', 'lastError']);
+  if (lastError) { setStatus(`Error: ${lastError}`); return; }
   if (!lastRun) return;
   const parts = [['closed', lastRun.closed], ['grouped', lastRun.grouped], ['discarded', lastRun.discarded]]
     .filter(([, n]) => n > 0)
@@ -151,17 +193,17 @@ export async function renderLastRun() {
 }
 
 export function bindActions({ onChange }) {
-  $('run').addEventListener('click', async () => {
+  $('run').addEventListener('click', () => performAction($('run'), async () => {
     setStatus('Running…');
     const res = await send('run-now');
-    setStatus(res?.error ? `Error: ${res.error}` : `Closed ${res.closed} duplicate${res.closed === 1 ? '' : 's'}, grouped ${res.grouped} stale${res.discarded ? `, discarded ${res.discarded}` : ''}`);
-    onChange?.();
-  });
-  $('undo').addEventListener('click', async () => {
+    await onChange?.();
+    setStatus(`Closed ${res.closed} duplicate${res.closed === 1 ? '' : 's'}, grouped ${res.grouped} tab${res.grouped === 1 ? '' : 's'}${res.discarded ? `, unloaded ${res.discarded}` : ''}`);
+  }));
+  $('undo').addEventListener('click', () => performAction($('undo'), async () => {
     const res = await send('undo');
-    setStatus(res?.error ? `Error: ${res.error}` : `Reopened ${res.reopened} tab${res.reopened === 1 ? '' : 's'}`);
-    onChange?.();
-  });
+    await onChange?.();
+    setStatus(`Reopened ${res.reopened} tab${res.reopened === 1 ? '' : 's'}`);
+  }));
 }
 
 export async function exportBackup() {
@@ -182,12 +224,11 @@ export async function importBackupFile(file, onChange) {
   try {
     const data = JSON.parse(await file.text());
     const res = await send('import', { data });
-    if (res?.error) throw new Error(res.error);
+    await onChange?.();
     setStatus(`Imported: settings, ${res.snoozed} snoozed, ${res.history} history`);
-    onChange?.();
   } catch (err) {
     setStatus(`Import failed: ${err.message}`);
   }
 }
 
-export { getSettings, saveSettings };
+export { getSettings };

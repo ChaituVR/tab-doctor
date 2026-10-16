@@ -1,59 +1,71 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tab Doctor</title>
   <link rel="stylesheet" href="../ui/ui.css">
+  <link rel="stylesheet" href="popup.css">
 </head>
 <body class="popup">
-  <header class="titlebar">
-    <img src="../../icons/icon32.png" width="20" height="20" alt="">
-    <span class="app">Tab Doctor</span>
-    <button class="gear" id="settings" title="All settings">⚙︎</button>
+  <header class="popup-header">
+    <div class="brand-icon"><img src="../../icons/icon48.png" width="28" height="28" alt=""></div>
+    <div class="brand-copy"><h1>Tab Doctor</h1><p>A little care for your tabs.</p></div>
+    <button class="icon-button" id="settings" title="All settings" aria-label="Open all settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 3-.6 2.3-2 .9-2.1-.6-2.3 3.9 1.6 1.7v2.3l-1.6 1.7 2.3 3.9 2.1-.6 2 .9.6 2.3h4.6l.6-2.3 2-.9 2.1.6 2.3-3.9-1.6-1.7v-2.3l1.6-1.7-2.3-3.9-2.1.6-2-.9-.6-2.3Z"/><circle cx="11.8" cy="12.3" r="3.2"/></svg>
+    </button>
   </header>
 
-  <section class="group">
-    <ul class="list">
-      <li class="row">
-        <div class="text"><span class="label">Paused</span><span class="sub">Stop automatic actions</span></div>
-        <input type="checkbox" class="switch" id="paused">
-      </li>
-    </ul>
-  </section>
+  <main class="popup-content">
+    <section class="care-status" id="careStatus" aria-label="Automatic tab care">
+      <span class="care-indicator" aria-hidden="true">
+        <svg class="care-on" viewBox="0 0 24 24"><path d="m6.5 12 3.5 3.5 7.5-7.5"/></svg>
+        <svg class="care-paused" viewBox="0 0 24 24"><path d="M9 7v10m6-10v10"/></svg>
+      </span>
+      <div class="text"><span class="label" id="careTitle">Automatic care</span><span class="sub" id="careDescription">Your tabs, a little tidier.</span></div>
+      <label class="pause-control"><span>Pause</span><input type="checkbox" class="switch" id="paused" aria-label="Pause automatic tab care"></label>
+    </section>
 
-  <section class="group" id="dupBanner" hidden>
-    <ul class="list">
-      <li class="row">
+    <section class="duplicate-card" id="dupBanner" hidden aria-label="Duplicate tabs">
+      <div class="duplicate-heading">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
         <div class="text"><span class="label" id="dupLabel"></span><span class="sub" id="dupSub"></span></div>
-        <div class="pills"><button class="pill" id="dupSwitch">Switch</button><button class="pill quiet" id="dupClose">Close this</button></div>
-      </li>
-    </ul>
-  </section>
+      </div>
+      <div class="pills"><button class="pill" id="dupSwitch">Switch to other tab</button><button class="pill quiet" id="dupClose">Close this tab</button></div>
+    </section>
+    <section class="leave-card" id="leaveCard" hidden aria-label="Leave this site alone">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 4-5 8-8 9-3-1-8-5-8-9V6z"/></svg>
+      <div class="text"><span class="label" id="leaveLabel">Leave this site alone</span><span class="sub">Never closed, grouped or unloaded.</span></div>
+      <input type="checkbox" class="switch" id="leaveSite" aria-labelledby="leaveLabel">
+    </section>
 
-  <section class="group">
-    <h2>Snoozed</h2>
-    <ul class="list">
-      <li class="row">
-        <div class="text"><span class="label">Snooze this tab</span><span class="sub">Later today · Tomorrow · Weekend · pick a date</span></div>
-        <div class="pills"><button class="pill" id="snoozeNow">Pick time</button></div>
-      </li>
-    </ul>
-    <ul class="list" id="snoozed"></ul>
-  </section>
+    <button class="snooze-action" id="snoozeNow">
+      <span class="section-icon violet"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg></span>
+      <span class="text"><span class="label">Snooze this tab</span><span class="sub">Choose when it comes back.</span></span>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+    </button>
 
-  <section class="group">
-    <h2>Recently closed</h2>
-    <ul class="list" id="history"></ul>
-  </section>
+    <section class="tab-section" aria-labelledby="snoozedHeading">
+      <div class="section-heading"><h2 id="snoozedHeading">Snoozed</h2><span class="count" id="snoozeCount" hidden></span></div>
+      <ul class="list" id="snoozed"></ul>
+    </section>
+    <section class="tab-section" aria-labelledby="historyHeading">
+      <div class="section-heading"><h2 id="historyHeading">Recently closed</h2><span class="count" id="historyCount" hidden></span></div>
+      <ul class="list" id="history"></ul>
+    </section>
+  </main>
 
-  <section class="actions">
-    <button id="run" class="btn primary">Run Now</button>
-    <button id="undo" class="btn tinted" disabled>Undo</button>
-  </section>
-  <p id="status" class="status"></p>
-  <nav class="foot">
-    <button class="footlink" id="settings2">All settings…</button>
-    <a class="footlink" href="https://github.com/ChaituVR/tab-doctor/issues/new" target="_blank" rel="noopener">Request a feature ↗</a>
-  </nav>
+  <footer class="popup-footer">
+    <section class="actions" aria-label="Tab actions">
+      <button id="run" class="btn primary">Run now</button>
+      <button id="undo" class="btn tinted" disabled>Undo</button>
+    </section>
+    <p id="status" class="status" role="status" aria-live="polite"></p>
+    <nav class="foot" aria-label="More options">
+      <button class="footlink" id="settings2">All settings <span aria-hidden="true">↗</span></button>
+      <a class="footlink" href="https://github.com/ChaituVR/tab-doctor/issues/new" target="_blank" rel="noopener">Request a feature <span aria-hidden="true">↗</span></a>
+    </nav>
+  </footer>
+  <script type="module" src="popup.js"></script>
 </body>
-<script type="module" src="popup.js"></script>
 </html>
